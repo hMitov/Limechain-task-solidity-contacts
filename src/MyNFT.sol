@@ -3,9 +3,11 @@ pragma solidity ^0.8.26;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
 import "forge-std/console.sol";
 
-contract MyNFT is ERC721, Ownable {
+contract MyNFT is ERC721, Ownable, ReentrancyGuard {
     uint256 public maxSupply = 10000;
     uint256 public totalMinted;
 
@@ -80,7 +82,7 @@ contract MyNFT is ERC721, Ownable {
         totalMinted++;
     }
 
-    function withdraw() external onlyOwner {
+    function withdraw() external onlyOwner nonReentrant {
         payable(owner()).transfer(address(this).balance);
     }
 

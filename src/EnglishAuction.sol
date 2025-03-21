@@ -3,7 +3,7 @@ pragma solidity ^0.8.26;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "forge-std/console.sol";
 
@@ -73,7 +73,7 @@ contract EnglishAuction is Ownable, IERC721Receiver, ReentrancyGuard {
         emit BidPlaced(msg.sender, msg.value);
     }
 
-    function withdraw() external {
+    function withdraw() external nonReentrant {
         uint256 bal = bids[msg.sender];
         console.log(bal);
         require(bal > 0, "There is no balance to withdraw.");
