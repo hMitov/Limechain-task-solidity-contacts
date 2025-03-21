@@ -15,7 +15,6 @@ contract MyERC7212 is Test {
     address private whitelistedBuyer1 = address(2);
     address private buyer = address(3);
 
-
     error OwnableUnauthorizedAccount(address account);
 
     function setUp() public {
@@ -115,21 +114,21 @@ contract MyERC7212 is Test {
     }
 
     function testMintPrivateSaleFailSaleNotActive() public {
-        uint tokenId = 23;
+        uint256 tokenId = 23;
         vm.expectRevert(bytes("Private sale is still not active."));
         nft.mintPrivateSale(tokenId);
     }
 
     function testMintPrivateSaleFailSenderNotWhitelisted() public {
-        uint tokenId = 23;
+        uint256 tokenId = 23;
         nft.togglePrivateSale();
         vm.expectRevert(bytes("Sender is not whitelisted."));
         nft.mintPrivateSale(tokenId);
     }
 
     function testMintPrivateSaleFailIncorrectEthAmount() public {
-        uint tokenId = 23;
-        uint ethAmount = 3 ether;
+        uint256 tokenId = 23;
+        uint256 ethAmount = 3 ether;
 
         testAddAddressesToWhitelist();
         nft.togglePrivateSale();
@@ -141,8 +140,8 @@ contract MyERC7212 is Test {
     }
 
     function testMintPrivateSale() public {
-        uint tokenId = 23;
-        uint ethAmount = 0.05 ether;
+        uint256 tokenId = 23;
+        uint256 ethAmount = 0.05 ether;
 
         testAddAddressesToWhitelist();
         nft.togglePrivateSale();
@@ -155,16 +154,15 @@ contract MyERC7212 is Test {
         assertEq(1, nft.totalMinted());
     }
 
-
     function testMintPublicSaleFailSaleNotActive() public {
-        uint tokenId = 23;
+        uint256 tokenId = 23;
         vm.expectRevert(bytes("Public sale is still not active."));
         nft.mintPublicSale(tokenId);
     }
 
     function testMintPublicSaleFailIncorrectEthAmount() public {
-        uint tokenId = 23;
-        uint ethAmount = 3 ether;
+        uint256 tokenId = 23;
+        uint256 ethAmount = 3 ether;
 
         nft.togglePublicSale();
         vm.deal(buyer, ethAmount);
@@ -175,8 +173,8 @@ contract MyERC7212 is Test {
     }
 
     function testMintPublicSale() public {
-        uint tokenId = 23;
-        uint ethAmount = 0.1 ether;
+        uint256 tokenId = 23;
+        uint256 ethAmount = 0.1 ether;
 
         nft.togglePublicSale();
         vm.deal(buyer, ethAmount);
@@ -189,8 +187,8 @@ contract MyERC7212 is Test {
     }
 
     function testWithdraw() public {
-        uint ethAmount = 0.1 ether;
-        uint initialBalance = address(this).balance;
+        uint256 ethAmount = 0.1 ether;
+        uint256 initialBalance = address(this).balance;
         testMintPublicSale();
         nft.withdraw();
         assertEq(0, address(nft).balance);
