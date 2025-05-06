@@ -11,10 +11,7 @@ contract DeployFactoryScript is Script {
 
         EnglishAuctionFactory factory = new EnglishAuctionFactory();
 
-        console.log(
-            "EnglishAuctionFactory contract deployed at:",
-            address(factory)
-        );
+        console.log("EnglishAuctionFactory contract deployed at:", address(factory));
 
         vm.stopBroadcast();
     }

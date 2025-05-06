@@ -25,12 +25,7 @@ contract DeployEnglishAuction2Script is Script {
         uint256 tokenId = nft.totalMinted();
 
         // Deploy auction via factory
-        address auctionAddress = factory.createAuction(
-            nftAddress,
-            tokenId,
-            2 days,
-            0.001 ether
-        );
+        address auctionAddress = factory.createAuction(nftAddress, tokenId, 2 days, 0.001 ether);
 
         // Approve auction to transfer NFT
         nft.approve(auctionAddress, tokenId);

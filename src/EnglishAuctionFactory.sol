@@ -14,40 +14,23 @@ contract EnglishAuctionFactory {
         address indexed nft,
         uint256 tokenId,
         uint256 duration,
-        uint256 minBidIncrement);
+        uint256 minBidIncrement
+    );
 
-    function createAuction(
-        address _nft,
-        uint256 _tokenId,
-        uint256 _duration,
-        uint256 _minBidIncrement
-    ) external returns (address) {
-        require(
-            activeAuctions[_nft][_tokenId] == address(0),
-            "Auction already exists for this NFT"
-        );
+    function createAuction(address _nft, uint256 _tokenId, uint256 _duration, uint256 _minBidIncrement)
+        external
+        returns (address)
+    {
+        require(activeAuctions[_nft][_tokenId] == address(0), "Auction already exists for this NFT");
 
-        EnglishAuction auction = new EnglishAuction(
-            tx.origin,
-            _nft,
-            _tokenId,
-            _duration,
-            _minBidIncrement
-        );
+        EnglishAuction auction = new EnglishAuction(tx.origin, _nft, _tokenId, _duration, _minBidIncrement);
 
         address auctionAddress = address(auction);
         allAuctions.push(auctionAddress);
 
         activeAuctions[_nft][_tokenId] = auctionAddress;
 
-        emit AuctionCreated(
-            auctionAddress,
-            tx.origin,
-            _nft,
-            _tokenId,
-            _duration,
-            _minBidIncrement
-        );
+        emit AuctionCreated(auctionAddress, tx.origin, _nft, _tokenId, _duration, _minBidIncrement);
 
         return auctionAddress;
     }

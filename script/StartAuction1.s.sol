@@ -14,4 +14,4 @@ contract StartAuction1Script is Script {
 
         vm.stopBroadcast();
     }
-} 
+}

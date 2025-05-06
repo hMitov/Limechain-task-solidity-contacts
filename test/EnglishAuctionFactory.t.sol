@@ -13,27 +13,28 @@ contract MockERC721 is ERC721 {
         _mint(to, tokenId);
     }
 
-   // function approve(address to, uint256 tokenId) external {
-     //   _approve[tokenId] = to;
-   // }
+    // function approve(address to, uint256 tokenId) external {
+    //   _approve[tokenId] = to;
+    // }
 
-   // function ownerOf(uint256 tokenId) external view returns (address) {
+    // function ownerOf(uint256 tokenId) external view returns (address) {
     //    return _owners[tokenId];
-   // }
+    // }
 }
 
 contract EnglishAuctionFactoryTest is Test {
     EnglishAuctionFactory private englishAuctionFactory;
     MockERC721 private nft;
     address private seller;
+
     event AuctionCreated(
         address indexed auctionAddress,
         address indexed creator,
         address indexed nft,
         uint256 tokenId,
         uint256 duration,
-        uint256 minBidIncrement);
-
+        uint256 minBidIncrement
+    );
 
     function setUp() public {
         englishAuctionFactory = new EnglishAuctionFactory();
@@ -55,14 +56,7 @@ contract EnglishAuctionFactoryTest is Test {
         vm.deal(seller, 10 ether);
 
         vm.expectEmit(false, true, true, true);
-        emit AuctionCreated(
-            address(0), 
-            seller,
-            address(nft),
-            1,
-            2 days,
-            0.01 ether
-        );
+        emit AuctionCreated(address(0), seller, address(nft), 1, 2 days, 0.01 ether);
 
         address auctionAddress = englishAuctionFactory.createAuction(address(nft), 1, 2 days, 0.01 ether);
         EnglishAuction createdAuction = EnglishAuction(payable(auctionAddress));

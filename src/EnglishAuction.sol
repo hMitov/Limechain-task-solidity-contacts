@@ -27,7 +27,8 @@ contract EnglishAuction is Ownable, IERC721Receiver, ReentrancyGuard {
         address indexed nft,
         uint256 tokenId,
         uint256 duration,
-        uint256 minBidIncrement);
+        uint256 minBidIncrement
+    );
 
     IERC721 public immutable nft;
     uint256 public immutable nftId;
@@ -43,7 +44,9 @@ contract EnglishAuction is Ownable, IERC721Receiver, ReentrancyGuard {
     uint256 public highestBid;
     mapping(address => uint256) public bids;
 
-    constructor(address _seller, address _nft, uint256 _nftId, uint256 _duration, uint256 _minBidIncrement) Ownable(_seller) {
+    constructor(address _seller, address _nft, uint256 _nftId, uint256 _duration, uint256 _minBidIncrement)
+        Ownable(_seller)
+    {
         nft = IERC721(_nft);
         nftId = _nftId;
         seller = payable(_seller);
