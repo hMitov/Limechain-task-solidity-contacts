@@ -39,7 +39,7 @@ contract EnglishAuctionTest is Test {
         vm.startPrank(seller);
         nft = new MockERC721();
         nft.mint(seller, nftId);
-        auction = new EnglishAuction(address(nft), nftId, duration, minBidIncrement);
+        auction = new EnglishAuction(seller, address(nft), nftId, duration, minBidIncrement);
         vm.stopPrank();
     }
 

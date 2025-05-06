@@ -5,14 +5,13 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import "forge-std/console.sol";
 
 contract MyNFT is ERC721, Ownable, ReentrancyGuard {
     uint256 public maxSupply = 10000;
     uint256 public totalMinted;
 
-    uint256 public privateSalePrice = 0.05 ether;
-    uint256 public publicSalePrice = 0.1 ether;
+    uint256 public privateSalePrice = 0.0005 ether;
+    uint256 public publicSalePrice = 0.001 ether;
     bool public isPrivateSaleActive = false;
     bool public isPublicSaleActive = false;
 
@@ -35,7 +34,6 @@ contract MyNFT is ERC721, Ownable, ReentrancyGuard {
     }
 
     function addAddressesToWhitelist(address[] calldata addresses) external onlyOwner {
-        console.log("Addresses size ", addresses.length);
         for (uint256 i = 0; i < addresses.length; i++) {
             whitelist[addresses[i]] = true;
         }
@@ -62,23 +60,22 @@ contract MyNFT is ERC721, Ownable, ReentrancyGuard {
         setPublicSalePrice(_publicSalePrice);
     }
 
-    function mintPrivateSale(uint256 tokenId) external payable {
+    function mintPrivateSale() external payable {
         require(isPrivateSaleActive, "Private sale is still not active.");
         require(whitelist[msg.sender], "Sender is not whitelisted.");
-
         require(msg.value == privateSalePrice, "There is a fixed ETH amount. The provided one is incorrect.");
         require(totalMinted < maxSupply, "Max supply has been already reached. You are not allowed to min anymore.");
 
-        _safeMint(msg.sender, tokenId);
+        _safeMint(msg.sender, totalMinted + 1);
         totalMinted++;
     }
 
-    function mintPublicSale(uint256 tokenId) external payable {
+    function mintPublicSale() external payable {
         require(isPublicSaleActive, "Public sale is still not active.");
         require(msg.value == publicSalePrice, "There is a fixed ETH amount. The provided one is incorrect.");
         require(totalMinted < maxSupply, "Max supply has been already reached. You are not allowed to mind anymore.");
 
-        _safeMint(msg.sender, tokenId);
+        _safeMint(msg.sender, totalMinted + 1);
         totalMinted++;
     }
 

@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {MyNFT} from "../src/MyNFT.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "forge-std/console.sol";
 
-contract MyERC7212 is Test {
+contract MyERC721 is Test {
     MyNFT private nft;
     string private tokenName = "tokenName1";
     string private tokenSymbol = "tokenSymbol1";
@@ -114,20 +113,17 @@ contract MyERC7212 is Test {
     }
 
     function testMintPrivateSaleFailSaleNotActive() public {
-        uint256 tokenId = 23;
         vm.expectRevert(bytes("Private sale is still not active."));
-        nft.mintPrivateSale(tokenId);
+        nft.mintPrivateSale();
     }
 
     function testMintPrivateSaleFailSenderNotWhitelisted() public {
-        uint256 tokenId = 23;
         nft.togglePrivateSale();
         vm.expectRevert(bytes("Sender is not whitelisted."));
-        nft.mintPrivateSale(tokenId);
+        nft.mintPrivateSale();
     }
 
     function testMintPrivateSaleFailIncorrectEthAmount() public {
-        uint256 tokenId = 23;
         uint256 ethAmount = 3 ether;
 
         testAddAddressesToWhitelist();
@@ -135,59 +131,57 @@ contract MyERC7212 is Test {
         vm.deal(whitelistedBuyer1, ethAmount);
         vm.startPrank(whitelistedBuyer1);
         vm.expectRevert(bytes("There is a fixed ETH amount. The provided one is incorrect."));
-        nft.mintPrivateSale{value: ethAmount}(tokenId);
+        nft.mintPrivateSale{value: ethAmount}();
         vm.stopPrank();
     }
 
     function testMintPrivateSale() public {
-        uint256 tokenId = 23;
-        uint256 ethAmount = 0.05 ether;
+        uint256 tokenId = 1;
+        uint256 ethAmount = 0.0005 ether;
 
         testAddAddressesToWhitelist();
         nft.togglePrivateSale();
         vm.deal(whitelistedBuyer1, ethAmount);
         vm.startPrank(whitelistedBuyer1);
-        nft.mintPrivateSale{value: ethAmount}(tokenId);
+        nft.mintPrivateSale{value: ethAmount}();
         vm.stopPrank();
 
         assertEq(whitelistedBuyer1, nft.ownerOf(tokenId));
-        assertEq(1, nft.totalMinted());
+        assertEq(tokenId, nft.totalMinted());
     }
 
     function testMintPublicSaleFailSaleNotActive() public {
-        uint256 tokenId = 23;
         vm.expectRevert(bytes("Public sale is still not active."));
-        nft.mintPublicSale(tokenId);
+        nft.mintPublicSale();
     }
 
     function testMintPublicSaleFailIncorrectEthAmount() public {
-        uint256 tokenId = 23;
         uint256 ethAmount = 3 ether;
 
         nft.togglePublicSale();
         vm.deal(buyer, ethAmount);
         vm.startPrank(buyer);
         vm.expectRevert(bytes("There is a fixed ETH amount. The provided one is incorrect."));
-        nft.mintPublicSale{value: ethAmount}(tokenId);
+        nft.mintPublicSale{value: ethAmount}();
         vm.stopPrank();
     }
 
     function testMintPublicSale() public {
-        uint256 tokenId = 23;
-        uint256 ethAmount = 0.1 ether;
+        uint256 tokenId = 1;
+        uint256 ethAmount = 0.001 ether;
 
         nft.togglePublicSale();
         vm.deal(buyer, ethAmount);
         vm.startPrank(buyer);
-        nft.mintPublicSale{value: ethAmount}(tokenId);
+        nft.mintPublicSale{value: ethAmount}();
         vm.stopPrank();
 
         assertEq(buyer, nft.ownerOf(tokenId));
-        assertEq(1, nft.totalMinted());
+        assertEq(tokenId, nft.totalMinted());
     }
 
     function testWithdraw() public {
-        uint256 ethAmount = 0.1 ether;
+        uint256 ethAmount = 0.001 ether;
         uint256 initialBalance = address(this).balance;
         testMintPublicSale();
         nft.withdraw();
