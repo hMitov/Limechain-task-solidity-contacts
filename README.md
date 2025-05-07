@@ -73,16 +73,19 @@ source .env
 forge script script/DeployFactory.s.sol:DeployFactoryScript --rpc-url $SEPOLIA_RPC_URL --broadcast -v
 ```
 
+ ⚠️ IMPORTANT: You must start the API before creating English auctions so that it can detect their creation and begin listening for related events.
+   ```
+
 3. Create an auction:
 ```shell
 source .env      
-forge script script/DeployEnglishAuction.s.sol:DeployEnglishAuctionScript --rpc-url $SEPOLIA_RPC_URL --broadcast -v
+forge script script/DeployEnglishAuction1.s.sol:DeployEnglishAuction1Script --rpc-url $SEPOLIA_RPC_URL --broadcast -v
 ```
 
 4. Start the auction:
 ```shell
 source .env               
-forge script script/StartAuction.s.sol:StartAuctionScript --rpc-url $SEPOLIA_RPC_URL --broadcast -v
+forge script script/StartAuction1.s.sol:StartAuction1Script --rpc-url $SEPOLIA_RPC_URL --broadcast -v
 ```
 
 Each deployment script uses Foundry's scripting capabilities to:
@@ -99,7 +102,8 @@ Required environment variables in `.env`:
 - `TEST_ACCOUNT_2_PRIVATE_KEY`: Private key for testing
 - `NFT_CONTRACT_ADDRESS`: Deployed NFT contract address (update after NFT deployment)
 - `AUCTION_FACTORY_ADDRESS`: Deployed factory contract address (update after factory deployment)
-- `AUCTION_ADDRESS`: Individual auction contract address (update after auction creation)
+- `AUCTION_1_ADDRESS`: Individual auction contract address (update after auction creation)
+- `AUCTION_2_ADDRESS`: Individual auction contract address (update after auction creation)
 
 ### API Repository Updates
 
