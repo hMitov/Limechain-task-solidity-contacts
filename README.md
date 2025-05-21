@@ -64,30 +64,58 @@ The `--broadcast` flag can be used with different verbosity levels:
 1. Deploy the NFT contract:
 ```shell
 source .env            
-forge script script/MyNFT.s.sol:MyNFTScript --rpc-url $SEPOLIA_RPC_URL --broadcast -v
+forge script script/MyNFT.s.sol:MyNFTScript --rpc-url $SEPOLIA_RPC_URL --broadcast -vvv
 ```
+⚠️ **IMPORTANT**: You must set the following contract address in .env
+   ```
+   NFT_CONTRACT_ADDRESS=your_nft_contract_address
+   ```
 
 2. Deploy the Auction Factory:
 ```shell
 source .env            
-forge script script/DeployFactory.s.sol:DeployFactoryScript --rpc-url $SEPOLIA_RPC_URL --broadcast -v
-```
+forge script script/DeployFactory.s.sol:DeployFactoryScript --rpc-url $SEPOLIA_RPC_URL --broadcast -vvv
 
- ⚠️ IMPORTANT: You must start the API before creating English auctions so that it can detect their creation and begin listening for related events.
+```
+⚠️ **IMPORTANT**: You must set the following contract address in .env
+   ```
+   AUCTION_FACTORY_ADDRESS=your_auction_factory_address
    ```
 
-3. Create an auction:
+3. Create first auction:
 ```shell
 source .env      
-forge script script/DeployEnglishAuction1.s.sol:DeployEnglishAuction1Script --rpc-url $SEPOLIA_RPC_URL --broadcast -v
+forge script script/DeployEnglishAuction1.s.sol:DeployEnglishAuction1Script --rpc-url $SEPOLIA_RPC_URL --broadcast -vvvvv
 ```
 
-4. Start the auction:
+⚠️ **IMPORTANT**: You must set the following contract address in .env
+   ```
+   AUCTION_1_ADDRESS=your_first_auction_address
+   ```
+
+4. Start first auction:
 ```shell
 source .env               
 forge script script/StartAuction1.s.sol:StartAuction1Script --rpc-url $SEPOLIA_RPC_URL --broadcast -v
 ```
 
+5. Create second auction:
+```shell
+source .env      
+forge script script/DeployEnglishAuction2.s.sol:DeployEnglishAuction2Script --rpc-url $SEPOLIA_RPC_URL --broadcast -vvvvv
+```
+
+⚠️ **IMPORTANT**: You must set the following contract address in .env
+   ```
+   AUCTION_2_ADDRESS=your_second_auction_address
+   ```
+
+6. Start second auction:
+```shell
+source .env               
+forge script script/StartAuction2.s.sol:StartAuction2Script --rpc-url $SEPOLIA_RPC_URL --broadcast -v
+
+```
 Each deployment script uses Foundry's scripting capabilities to:
 - Load environment variables
 - Connect to the Sepolia network
