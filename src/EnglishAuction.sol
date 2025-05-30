@@ -125,7 +125,7 @@ contract EnglishAuction is Ownable, IERC721Receiver, ReentrancyGuard {
         require(success, "ETH transfer failed.");
     }
 
-    function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data)
+    function onERC721Received(address, address, uint256, bytes calldata)
         external
         pure
         override

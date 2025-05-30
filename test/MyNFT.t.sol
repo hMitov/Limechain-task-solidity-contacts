@@ -189,7 +189,7 @@ contract MyERC721 is Test {
         assertEq(initialBalance + ethAmount, address(this).balance);
     }
 
-    function testBaseURI() public {
+    function testBaseURI() public view {
         assertEq(uri, nft.baseURI());
     }
 
