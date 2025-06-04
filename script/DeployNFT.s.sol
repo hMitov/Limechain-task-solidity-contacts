@@ -5,10 +5,10 @@ import "forge-std/Script.sol";
 import {ScriptUtils} from "./ScriptUtils.s.sol";
 import {MyNFT} from "../src/MyNFT.sol";
 
-/// @title  MyNFTScript
+/// @title  DeployNFTScript
 /// @notice Deployment script for the MyNFT ERC721 contract
 /// @dev    Requires environment variables to be set in `.env` file
-contract MyNFTScript is Script, ScriptUtils {
+contract DeployNFTScript is Script, ScriptUtils {
     /// @notice Executes the deployment of the MyNFT contract
     /// @dev    Requires the following environment variables:
     /// - TEST_ACCOUNT_1_PRIVATE_KEY

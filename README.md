@@ -69,7 +69,7 @@ The `--broadcast` flag can be used with different verbosity levels:
 1. Deploy the NFT contract:
 ```shell
 source .env            
-forge script script/MyNFT.s.sol:MyNFTScript --rpc-url $SEPOLIA_RPC_URL --broadcast -vvv
+forge script script/DeployNFT.s.sol:DeployNFTScript --rpc-url $SEPOLIA_RPC_URL --broadcast -vvv
 ```
 ⚠️ **IMPORTANT**: You must set the following contract address in .env
    ```
@@ -168,6 +168,8 @@ These updates are **ESSENTIAL** for:
 ## Testing
 
 The project includes comprehensive tests for all contracts:
+
+### Unit Tests
 - NFT minting and transfer tests
 - Auction creation and management tests
 - Bid placement and withdrawal tests
@@ -176,6 +178,15 @@ The project includes comprehensive tests for all contracts:
 - Pause/unpause functionality tests
 - Auction extension tests
 - Event emission verification
+
+### Integration Tests
+- Complete auction lifecycle with royalty payments
+- Bid validation and withdrawal functionality
+- Auction cancellation and extension scenarios
+- Factory auction tracking and removal
+- NFT ownership and royalty distribution
+
+The integration tests verify key scenarios like bid validation, auction timing, and proper fund distribution between participants.
 
 ## Usage
 

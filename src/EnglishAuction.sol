@@ -100,6 +100,7 @@ contract EnglishAuction is AccessControl, IERC721Receiver, ReentrancyGuard, Paus
     /// @notice The maximum duration an auction can last
     uint256 public constant MAX_DURATION = 30 days;
 
+    /// @notice Role identifier for general admin functions
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     /// @notice                 Initializes a new English Auction contract
@@ -123,6 +124,7 @@ contract EnglishAuction is AccessControl, IERC721Receiver, ReentrancyGuard, Paus
         _grantRole(ADMIN_ROLE, _seller);
     }
 
+    /// @notice Ensures that only users with the admin role can call
     modifier onlyAdmin() {
         require(hasRole(ADMIN_ROLE, msg.sender), "Caller is not an admin");
         _;
@@ -220,6 +222,7 @@ contract EnglishAuction is AccessControl, IERC721Receiver, ReentrancyGuard, Paus
     /// @notice Finalizes the auction and transfers the NFT and funds
     function end() external payable onlyAdmin {
         require(isStarted(), "Auction not started");
+        require(block.timestamp >= endAt, "Auction time not yet over");
         require(!isEnded(), "Auction already ended");
 
         address currentHighestBidder = highestBidder;

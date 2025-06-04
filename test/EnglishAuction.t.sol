@@ -21,10 +21,9 @@ contract EnglishAuctionTest is Test {
     address private constant bidder1 = address(2);
     address private constant bidder2 = address(3);
 
-    uint256 private constant nftId = 1;
-    uint256 private constant startingBid = 1 ether;
-    uint256 private duration = 3 days;
-    uint256 private constant minBidIncrement = 0.1 ether;
+    uint256 private constant NFT_ID = 1;
+    uint256 private constant AUCTION_DURATION = 3 days;
+    uint256 private constant MIN_BID_INCREMENT = 0.1 ether;
 
     uint256 private constant BID_EXTENSION_GRACE_PERIOD = 10 minutes;
     uint256 private constant EXTENSION_DURATION = 5 minutes;
@@ -45,9 +44,11 @@ contract EnglishAuctionTest is Test {
 
     function setUp() public {
         vm.startPrank(seller);
+
         nft = new MockERC721();
-        nft.mint(seller, nftId);
-        auction = new EnglishAuction(seller, address(nft), nftId, duration, minBidIncrement);
+        nft.mint(seller, NFT_ID);
+        auction = new EnglishAuction(seller, address(nft), NFT_ID, AUCTION_DURATION, MIN_BID_INCREMENT);
+
         vm.stopPrank();
     }
 
@@ -55,10 +56,10 @@ contract EnglishAuctionTest is Test {
         vm.startPrank(seller);
         auction.pause();
         assertTrue(auction.paused());
-
         auction.unpause();
-        assertFalse(auction.paused());
         vm.stopPrank();
+
+        assertFalse(auction.paused());
     }
 
     function testPauseFailsIfNotAdmin() public {
@@ -70,29 +71,30 @@ contract EnglishAuctionTest is Test {
 
     function testContructorRevertsOnInAppropriateArgs() public {
         vm.expectRevert("NFT cannot be zero address");
-        new EnglishAuction(seller, address(0), nftId, duration, minBidIncrement);
+        new EnglishAuction(seller, address(0), NFT_ID, AUCTION_DURATION, MIN_BID_INCREMENT);
 
         vm.expectRevert("Invalid auction duration");
-        new EnglishAuction(seller, address(nft), nftId, 0, minBidIncrement);
+        new EnglishAuction(seller, address(nft), NFT_ID, 0, MIN_BID_INCREMENT);
     }
 
     function testStartAuction() public {
         vm.prank(seller);
+
         nft.setApprovalForAll(address(this), true);
-        nft.approve(address(auction), nftId);
+        nft.approve(address(auction), NFT_ID);
         uint256 currentTime = block.timestamp;
         vm.expectEmit(true, false, false, true);
-        emit AuctionStarted(currentTime, currentTime + duration);
+        emit AuctionStarted(currentTime, currentTime + AUCTION_DURATION);
 
         vm.startPrank(seller);
         auction.start();
         vm.stopPrank();
 
         uint256 endAt = auction.endAt();
-        assertGe(endAt, currentTime + duration);
-        assertLe(endAt, block.timestamp + duration);
+        assertGe(endAt, currentTime + AUCTION_DURATION);
+        assertLe(endAt, block.timestamp + AUCTION_DURATION);
 
-        address nftOwner = nft.ownerOf(nftId);
+        address nftOwner = nft.ownerOf(NFT_ID);
         assertEq(nftOwner, address(auction), "NFT should be transferred to auction contract");
     }
 
@@ -105,7 +107,7 @@ contract EnglishAuctionTest is Test {
 
     function testStartAuctionFailsNotApproved() public {
         vm.prank(seller);
-        vm.mockCall(address(nft), abi.encodeWithSelector(nft.getApproved.selector, nftId), abi.encode(address(0)));
+        vm.mockCall(address(nft), abi.encodeWithSelector(nft.getApproved.selector, NFT_ID), abi.encode(address(0)));
         vm.expectRevert(bytes("Auction not approved for NFT"));
         auction.start();
     }
@@ -294,26 +296,34 @@ contract EnglishAuctionTest is Test {
     function testEndAuctionWithBid() public {
         testBid();
 
+        uint256 endAt = auction.endAt();
+        vm.warp(endAt + 1);
+
+        address expectedWinner = auction.highestBidder();
+        uint256 expectedBid = auction.highestBid();
+
         vm.startPrank(seller);
         vm.expectEmit(true, false, false, true);
-        emit AuctionEnded(auction.highestBidder(), auction.highestBid());
+        emit AuctionEnded(expectedWinner, expectedBid);
         auction.end();
         vm.stopPrank();
 
-        assertEq(nft.ownerOf(nftId), auction.highestBidder());
-        assertEq(seller.balance, auction.highestBid());
+        assertEq(nft.ownerOf(NFT_ID), expectedWinner);
+        assertEq(seller.balance, expectedBid);
     }
 
     function testEndAuctionWithoutBid() public {
         testStartAuction();
 
+        vm.warp(auction.endAt() + 1);
+
         vm.startPrank(seller);
         vm.expectEmit(true, false, false, true);
-        emit AuctionEnded(auction.highestBidder(), auction.highestBid());
+        emit AuctionEnded(address(0), 0);
         auction.end();
         vm.stopPrank();
 
-        assertEq(nft.ownerOf(nftId), seller);
+        assertEq(nft.ownerOf(NFT_ID), seller);
     }
 
     function testEndAuctionFailAlreadyEnded() public {
@@ -329,6 +339,7 @@ contract EnglishAuctionTest is Test {
         testEndAuctionWithBid();
 
         vm.prank(seller);
+        vm.warp(block.timestamp + 4 days);
         vm.expectRevert(bytes("Auction already ended"));
         auction.cancelAuction();
     }
@@ -337,10 +348,10 @@ contract EnglishAuctionTest is Test {
         vm.assume(sellerAddr != address(0));
         vm.assume(nftAddr != address(0));
 
-        duration = bound(dur, 1, 30 days);
+        uint256 duration = bound(dur, 1, 30 days);
         uint256 increment = bound(inc, 1 ether, 1000 ether);
 
-        EnglishAuction newAuction = new EnglishAuction(sellerAddr, nftAddr, nftId, duration, increment);
+        EnglishAuction newAuction = new EnglishAuction(sellerAddr, nftAddr, NFT_ID, duration, increment);
 
         assertEq(newAuction.duration(), duration);
         assertEq(newAuction.minBidIncrement(), increment);
@@ -351,7 +362,7 @@ contract EnglishAuctionTest is Test {
         testStartAuction();
 
         bid1 = bound(bid1, 1 ether, 1000 ether);
-        bid2 = bound(bid2, bid1 + minBidIncrement, 2000 ether);
+        bid2 = bound(bid2, bid1 + MIN_BID_INCREMENT, 2000 ether);
 
         vm.startPrank(bidder1);
         vm.deal(bidder1, bid1);
@@ -372,7 +383,7 @@ contract EnglishAuctionTest is Test {
         testStartAuction();
 
         bid1 = bound(bid1, 1 ether, 50 ether);
-        bid2 = bound(bid2, bid1 + minBidIncrement, 100 ether);
+        bid2 = bound(bid2, bid1 + MIN_BID_INCREMENT, 100 ether);
 
         vm.startPrank(bidder1);
         vm.deal(bidder1, bid1);
@@ -397,7 +408,7 @@ contract EnglishAuctionTest is Test {
         testStartAuction();
 
         baseBid = bound(baseBid, 1 ether, 100 ether);
-        lowBid = bound(lowBid, 1 wei, baseBid + minBidIncrement - 1);
+        lowBid = bound(lowBid, 1 wei, baseBid + MIN_BID_INCREMENT - 1);
 
         vm.deal(bidder1, baseBid);
         vm.prank(bidder1);
@@ -412,13 +423,14 @@ contract EnglishAuctionTest is Test {
     function testFuzzRejectLateBid(uint256 bidAmount) public {
         testStartAuction();
 
-        bidAmount = bound(bidAmount, minBidIncrement, 10 ether);
+        bidAmount = bound(bidAmount, MIN_BID_INCREMENT, 10 ether);
 
         vm.warp(auction.endAt() - 10);
         vm.deal(bidder1, bidAmount);
         vm.prank(bidder1);
         uint256 previousEndAt = auction.endAt();
         auction.bid{value: 2 ether}();
+
         assertEq(auction.endAt(), previousEndAt + EXTENSION_DURATION);
     }
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import "../src/EnglishAuction.sol";
 import {EnglishAuctionFactory} from "../src/EnglishAuctionFactory.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -182,17 +182,20 @@ contract EnglishAuctionFactoryTest is Test {
         nft.mint(seller, tokenId);
         vm.startPrank(seller);
         nft.approve(address(englishAuctionFactory), tokenId);
+
         vm.expectRevert("Min bid increment must be greater than zero");
         englishAuctionFactory.createAuction(address(nft), tokenId, duration, 0);
         vm.stopPrank();
     }
 
     function testFuzzCreateAuctionRejectsDurationTooLong(uint256 tokenId, uint256 longDuration) public {
-        vm.assume(longDuration > englishAuctionFactory.MAX_AUCTION_DURATION());
-        nft.mint(seller, tokenId);
+        uint256 maxDuration = englishAuctionFactory.MAX_AUCTION_DURATION();
+        vm.assume(longDuration > maxDuration && longDuration < type(uint256).max); // prevent overflow edge case
 
+        nft.mint(seller, tokenId);
         vm.startPrank(seller);
         nft.approve(address(englishAuctionFactory), tokenId);
+
         vm.expectRevert("Duration too long");
         englishAuctionFactory.createAuction(address(nft), tokenId, longDuration, MIN_BID_INCREMENT);
         vm.stopPrank();
