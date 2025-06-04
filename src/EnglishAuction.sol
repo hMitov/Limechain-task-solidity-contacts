@@ -95,7 +95,7 @@ contract EnglishAuction is Ownable, IERC721Receiver, ReentrancyGuard, Pausable {
     event AuctionExtended(uint256 newEndTime, address extendedBy);
 
     /// @notice Emitted if royalty is paid
-    event RoyaltyPaid(address indexed receiver, uint256 amount);
+    event RoyaltyPaid(uint256 nftId, address indexed receiver, uint256 amount);
 
     /// @notice The maximum duration an auction can last
     uint256 public constant MAX_DURATION = 30 days;
@@ -223,19 +223,14 @@ contract EnglishAuction is Ownable, IERC721Receiver, ReentrancyGuard, Pausable {
             address royaltyReceiver;
             uint256 royaltyAmount;
 
-            try IERC2981(address(nft)).royaltyInfo(nftId, salePrice) returns (address receiver, uint256 amount) {
-                if (receiver != address(0) && amount > 0 && amount < salePrice) {
-                    royaltyReceiver = receiver;
-                    royaltyAmount = amount;
-                }
-            } catch {
-                // Royalty is not supported by this contract, do nothing
+            if (IERC165(address(nft)).supportsInterface(type(IERC2981).interfaceId)) {
+                (royaltyReceiver, royaltyAmount) = IERC2981(address(nft)).royaltyInfo(nftId, salePrice);
             }
 
             if (royaltyAmount > 0) {
                 _safeTransferETH(royaltyReceiver, royaltyAmount);
                 _safeTransferETH(seller, salePrice - royaltyAmount);
-                emit RoyaltyPaid(royaltyReceiver, royaltyAmount);
+                emit RoyaltyPaid(nftId, royaltyReceiver, royaltyAmount);
             } else {
                 _safeTransferETH(seller, salePrice);
             }
