@@ -61,15 +61,15 @@ contract EnglishAuctionTest is Test {
         vm.stopPrank();
     }
 
-    function testPauseFailsIfNotOwner() public {
+    function testPauseFailsIfNotAdmin() public {
         vm.startPrank(nonOwner);
-        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner));
+        vm.expectRevert("Caller is not an admin");
         auction.pause();
         vm.stopPrank();
     }
 
     function testContructorRevertsOnInAppropriateArgs() public {
-        vm.expectRevert("Invalid NFT address");
+        vm.expectRevert("NFT cannot be zero address");
         new EnglishAuction(seller, address(0), nftId, duration, minBidIncrement);
 
         vm.expectRevert("Invalid auction duration");
@@ -96,9 +96,9 @@ contract EnglishAuctionTest is Test {
         assertEq(nftOwner, address(auction), "NFT should be transferred to auction contract");
     }
 
-    function testStartAuctionFailNotOwner() public {
+    function testStartAuctionFailNotAdmin() public {
         vm.startPrank(nonOwner);
-        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner));
+        vm.expectRevert("Caller is not an admin");
         auction.start();
         vm.stopPrank();
     }
@@ -247,9 +247,9 @@ contract EnglishAuctionTest is Test {
         auction.withdraw();
     }
 
-    function testCancelAuctionFailNotOwner() public {
+    function testCancelAuctionFailNotAdmin() public {
         vm.startPrank(nonOwner);
-        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner));
+        vm.expectRevert("Caller is not an admin");
         auction.start();
         vm.stopPrank();
     }
@@ -277,9 +277,9 @@ contract EnglishAuctionTest is Test {
         auction.cancelAuction();
     }
 
-    function testEndAuctionFailNotOwner() public {
+    function testEndAuctionFailNotAdmin() public {
         vm.startPrank(nonOwner);
-        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner));
+        vm.expectRevert("Caller is not an admin");
         auction.end();
         vm.stopPrank();
     }

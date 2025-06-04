@@ -46,7 +46,7 @@ This project implements a complete NFT auction system with the following compone
 - `EnglishAuctionFactory.sol`: Auction creation and management
 
 ### Dependencies
-- OpenZeppelin Contracts (ERC721, Ownable, ReentrancyGuard, Pausable, ERC2981)
+- OpenZeppelin Contracts (ERC721, AccessControl, ReentrancyGuard, Pausable, ERC2981)
 - Forge Standard Library
 
 ## Deployment
@@ -194,7 +194,7 @@ The project includes comprehensive tests for all contracts:
 
 ## Security Features
 - Reentrancy protection
-- Ownership checks
+- Role checks
 - Bid validation
 - Safe ETH transfers
 - NFT approval system

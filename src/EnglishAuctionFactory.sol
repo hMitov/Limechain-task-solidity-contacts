@@ -71,6 +71,7 @@ contract EnglishAuctionFactory {
     /// @param _nft     The NFT contract address
     /// @param _tokenId Token ID of the NFT
     function removeAuction(address _nft, uint256 _tokenId) external {
+        require(_nft != address(0), "NFT cannot be zero address");
         address auction = activeAuctions[_nft][_tokenId];
         require(auction != address(0), "No active auction for the NFT");
 

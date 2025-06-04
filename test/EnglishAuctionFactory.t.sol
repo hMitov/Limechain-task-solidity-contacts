@@ -147,6 +147,11 @@ contract EnglishAuctionFactoryTest is Test {
         vm.stopPrank();
     }
 
+    function testRemoveAuctionFailsInvalidNFT() public {
+        vm.expectRevert("NFT cannot be zero address");
+        englishAuctionFactory.removeAuction(address(0), TOKEN_ID);
+    }
+
     function testRemoveAuctionFailsIfNoAuction() public {
         vm.expectRevert("No active auction for the NFT");
         englishAuctionFactory.removeAuction(address(nft), TOKEN_ID);

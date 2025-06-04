@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
@@ -11,9 +11,11 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
 /// @notice This contract implements an ERC721-compliant NFT with private and public minting mechanisms.
 /// @dev    It includes whitelist-based private sales, togglable sale phases, fixed-price minting,
 ///         and admin controls for pricing, supply, and base URI, royalties (EIP-2981) and pause control.
-contract MyNFT is ERC721Royalty, Ownable, ReentrancyGuard, Pausable {
+contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     /// @notice The maximum number of NFTs that can be minted
     uint256 public immutable maxSupply;
+
+    address private owner;
 
     /// @notice The total number of NFTs minted so far
     uint256 public totalMinted;
@@ -59,6 +61,9 @@ contract MyNFT is ERC721Royalty, Ownable, ReentrancyGuard, Pausable {
     /// @notice Emitted when base URI is changed
     event BaseURIChanged(string newBaseURI);
 
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    bytes32 public constant WHITELIST_ROLE = keccak256("WHITELIST_ROLE");
+
     /// @param _name                Name of the NFT collection
     /// @param _symbol              Symbol of the NFT
     /// @param _URI                 Base URI for metadata
@@ -72,7 +77,7 @@ contract MyNFT is ERC721Royalty, Ownable, ReentrancyGuard, Pausable {
         uint256 _maxSupply,
         address _royaltyReceiver,
         uint96 _royaltyFeeNumerator
-    ) ERC721(_name, _symbol) Ownable(msg.sender) {
+    ) ERC721(_name, _symbol) {
         require(bytes(_name).length > 0, "NFT name must not be empty");
         require(bytes(_symbol).length > 0, "NFT symbol must not be empty");
         require(bytes(_URI).length > 0, "Base URI must not be empty");
@@ -80,30 +85,56 @@ contract MyNFT is ERC721Royalty, Ownable, ReentrancyGuard, Pausable {
         require(_royaltyReceiver != address(0), "Royalty receiver cannot be zero address");
         require(_royaltyFeeNumerator <= _feeDenominator(), "Royalty fee will exceed salePrice");
 
+        address deployer = msg.sender;
+        owner = deployer;
         baseURI = _URI;
         maxSupply = _maxSupply;
+
+        _grantRole(DEFAULT_ADMIN_ROLE, deployer);
+        _grantRole(ADMIN_ROLE, deployer);
+        _grantRole(WHITELIST_ROLE, deployer);
+
+        _setRoleAdmin(WHITELIST_ROLE, ADMIN_ROLE);
 
         _setDefaultRoyalty(_royaltyReceiver, _royaltyFeeNumerator);
     }
 
+    modifier onlyAdmin() {
+        require(hasRole(ADMIN_ROLE, msg.sender), "Caller is not an admin");
+        _;
+    }
+
+    modifier onlyWhitelister() {
+        require(hasRole(WHITELIST_ROLE, msg.sender), "Caller has no whitelist role");
+        _;
+    }
+
     /// @notice Pauses the auction (for bidding and withdrawal)
-    function pause() external onlyOwner {
+    function pause() external onlyAdmin {
         _pause();
     }
 
     /// @notice Resumes the auction
-    function unpause() external onlyOwner {
+    function unpause() external onlyAdmin {
         _unpause();
     }
 
+    function grantWhitelister(address account) external onlyAdmin {
+        grantRole(WHITELIST_ROLE, account);
+    }
+
+    function revokeWhitelister(address account) external onlyAdmin {
+        revokeRole(WHITELIST_ROLE, account);
+    }
+
     /// @notice Toggles the private sale status
-    function togglePrivateSale() external onlyOwner {
+    function togglePrivateSale() external onlyAdmin {
         saleFlags ^= PRIVATE_SALE_FLAG;
         emit PrivateSaleToggled();
     }
 
     /// @notice Toggles the public sale status
-    function togglePublicSale() external onlyOwner {
+    function togglePublicSale() external onlyAdmin {
         saleFlags ^= PUBLIC_SALE_FLAG;
         emit PublicSaleToggled();
     }
@@ -122,7 +153,7 @@ contract MyNFT is ERC721Royalty, Ownable, ReentrancyGuard, Pausable {
 
     /// @notice            Adds a user address to the private sale whitelist
     /// @param userAddress The address to whitelist
-    function addAddressToWhitelist(address userAddress) external onlyOwner {
+    function addAddressToWhitelist(address userAddress) external onlyWhitelister {
         require(userAddress != address(0), "Cannot whitelist zero address");
         require(!whitelist[userAddress], "Address is already whitelisted");
 
@@ -132,7 +163,7 @@ contract MyNFT is ERC721Royalty, Ownable, ReentrancyGuard, Pausable {
 
     /// @notice            Removes a user from the private sale whitelist
     /// @param userAddress The address to remove
-    function removeAddressFromWhitelist(address userAddress) external onlyOwner {
+    function removeAddressFromWhitelist(address userAddress) external onlyWhitelister {
         require(userAddress != address(0), "Cannot remove zero address");
         require(whitelist[userAddress], "Address is already whitelisted");
 
@@ -142,14 +173,14 @@ contract MyNFT is ERC721Royalty, Ownable, ReentrancyGuard, Pausable {
 
     /// @notice                  Sets the private sale price
     /// @param _privateSalePrice New price for private sale
-    function setPrivateSalePrice(uint256 _privateSalePrice) public onlyOwner {
+    function setPrivateSalePrice(uint256 _privateSalePrice) public onlyAdmin {
         privateSalePrice = _privateSalePrice;
         emit PricesUpdated(privateSalePrice, publicSalePrice);
     }
 
     /// @notice                 Sets the public sale price
     /// @param _publicSalePrice New price for public sale
-    function setPublicSalePrice(uint256 _publicSalePrice) public onlyOwner {
+    function setPublicSalePrice(uint256 _publicSalePrice) public onlyAdmin {
         publicSalePrice = _publicSalePrice;
         emit PricesUpdated(privateSalePrice, publicSalePrice);
     }
@@ -157,7 +188,7 @@ contract MyNFT is ERC721Royalty, Ownable, ReentrancyGuard, Pausable {
     /// @notice                  Sets both private and public sale prices
     /// @param _privateSalePrice New private sale price
     /// @param _publicSalePrice  New public sale price
-    function setPrices(uint256 _privateSalePrice, uint256 _publicSalePrice) external onlyOwner {
+    function setPrices(uint256 _privateSalePrice, uint256 _publicSalePrice) external onlyAdmin {
         setPrivateSalePrice(_privateSalePrice);
         setPublicSalePrice(_publicSalePrice);
         emit PricesUpdated(privateSalePrice, publicSalePrice);
@@ -199,10 +230,10 @@ contract MyNFT is ERC721Royalty, Ownable, ReentrancyGuard, Pausable {
     }
 
     /// @notice Withdraws all ETH from the contract to the owner
-    function withdraw() external onlyOwner nonReentrant {
+    function withdraw() external onlyAdmin nonReentrant {
         uint256 amount = address(this).balance;
-        payable(owner()).transfer(amount);
-        emit FundsWithdrawn(owner(), amount);
+        payable(owner).transfer(amount);
+        emit FundsWithdrawn(owner, amount);
     }
 
     /// @dev           Returns the base URI for metadata
@@ -213,9 +244,19 @@ contract MyNFT is ERC721Royalty, Ownable, ReentrancyGuard, Pausable {
 
     /// @notice       Sets a new base URI
     /// @param newURI The new URI to set
-    function setBaseURI(string memory newURI) external onlyOwner {
+    function setBaseURI(string memory newURI) external onlyAdmin {
         require(bytes(newURI).length > 0, "Base URI must not be empty");
         baseURI = newURI;
         emit BaseURIChanged(newURI);
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(ERC721Royalty, AccessControl)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
     }
 }
