@@ -15,6 +15,7 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     /// @notice The maximum number of NFTs that can be minted
     uint256 public immutable maxSupply;
 
+    /// @dev The deployer of the contract
     address private owner;
 
     /// @notice The total number of NFTs minted so far
@@ -61,7 +62,10 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     /// @notice Emitted when base URI is changed
     event BaseURIChanged(string newBaseURI);
 
+    /// @notice Role identifier for general admin functions
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+
+    /// @notice Role identifier for accounts that can manage the whitelist
     bytes32 public constant WHITELIST_ROLE = keccak256("WHITELIST_ROLE");
 
     /// @param _name                Name of the NFT collection
@@ -99,11 +103,13 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
         _setDefaultRoyalty(_royaltyReceiver, _royaltyFeeNumerator);
     }
 
+    /// @notice Ensures that only users with the admin role can call
     modifier onlyAdmin() {
         require(hasRole(ADMIN_ROLE, msg.sender), "Caller is not an admin");
         _;
     }
 
+    /// @notice Ensures that only users with the whitelist role can call
     modifier onlyWhitelister() {
         require(hasRole(WHITELIST_ROLE, msg.sender), "Caller has no whitelist role");
         _;
