@@ -27,21 +27,26 @@ This project implements a complete NFT auction system with the following compone
 - Auction cancellation (when no bids exist)
 - Automatic NFT transfer to winner
 - Automatic ETH transfer to seller
+- Pause/unpause functionality for emergency situations
+- Auction extension when bids are placed near the end
+- Comprehensive event logging for all actions
 
 ### EnglishAuctionFactory Contract
 - Creates new auction instances
 - Tracks all active auctions
 - Prevents duplicate auctions for the same NFT
+- Maximum auction duration enforcement
+- Auction removal functionality
 
 ## Technical Details
 
 ### Contracts
-- `MyNFT.sol`: Custom ERC721 implementation
+- `MyNFT.sol`: Custom ERC721 implementation with royalty support
 - `EnglishAuction.sol`: Individual auction management
 - `EnglishAuctionFactory.sol`: Auction creation and management
 
 ### Dependencies
-- OpenZeppelin Contracts (ERC721, Ownable, ReentrancyGuard)
+- OpenZeppelin Contracts (ERC721, Ownable, ReentrancyGuard, Pausable, ERC2981)
 - Forge Standard Library
 
 ## Deployment
@@ -125,29 +130,40 @@ Each deployment script uses Foundry's scripting capabilities to:
 
 ### Environment Variables
 Required environment variables in `.env`:
-- `SEPOLIA_RPC_URL`: RPC endpoint for Sepolia
-- `TEST_ACCOUNT_1_PRIVATE_KEY`: Private key for deployment
-- `TEST_ACCOUNT_2_PRIVATE_KEY`: Private key for testing
-- `NFT_CONTRACT_ADDRESS`: Deployed NFT contract address (update after NFT deployment)
-- `AUCTION_FACTORY_ADDRESS`: Deployed factory contract address (update after factory deployment)
-- `AUCTION_1_ADDRESS`: Individual auction contract address (update after auction creation)
-- `AUCTION_2_ADDRESS`: Individual auction contract address (update after auction creation)
+- `SEPOLIA_RPC_URL`: RPC endpoint for Sepolia testnet
+- `TEST_ACCOUNT_1_PRIVATE_KEY`: Private key for deployment and first auction
+- `TEST_ACCOUNT_2_PRIVATE_KEY`: Private key for second auction
+- `NFT_NAME`: Name of the NFT collection
+- `NFT_SYMBOL`: Symbol of the NFT collection
+- `NFT_URI`: Base URI for NFT metadata
+- `NFT_MAX_SUPPLY`: Maximum number of NFTs that can be minted
+- `MINT_PUBLIC_PRICE`: Price required to mint an NFT during public sale
+- `AUCTION_DURATION`: Duration (in seconds) for auctions
+- `AUCTION_MIN_BID_INCREMENT`: Minimum bid increment for auctions
+- `NFT_ROYALTY_RECEIVER`: Public address to receive secondary sale royaltie
+- `NFT_ROYALTY_NOMINATOR`: Royalty fee in basis points (e.g., 500 = 5%)   
 
 ### API Repository Updates
 
 After deploying the contracts, it is **CRUCIAL** to update the following addresses in the API repository:
 
 1. NFT Contract Address:
-   - **Update this in the API repository .env file**
+   - Update in the API repository's `.env` file
+   - Used for NFT minting and transfer operations
 
 2. Auction Factory Address:
-   - **Update this in the API repository .env file**
+   - Update in the API repository's `.env` file
+   - Used for auction creation and management
 
+3. Individual Auction Addresses:
+   - Update in the API repository's `.env` file
+   - Used for bid placement and auction interaction
 
 These updates are **ESSENTIAL** for:
 - Proper interaction between the API and smart contracts
 - Correct auction creation and management
 - NFT minting and transfer functionality
+- Real-time auction status updates
 
 ## Testing
 
@@ -156,6 +172,10 @@ The project includes comprehensive tests for all contracts:
 - Auction creation and management tests
 - Bid placement and withdrawal tests
 - Auction end and cancellation tests
+- Fuzzing tests for edge cases and parameter validation
+- Pause/unpause functionality tests
+- Auction extension tests
+- Event emission verification
 
 ## Usage
 
@@ -178,6 +198,12 @@ The project includes comprehensive tests for all contracts:
 - Bid validation
 - Safe ETH transfers
 - NFT approval system
+- Emergency pause functionality
+- Input validation for all parameters
+- Maximum duration limits
+- Zero address checks
+- Duplicate auction prevention
+- Royalty support for NFT creators
 
 ## Foundry
 

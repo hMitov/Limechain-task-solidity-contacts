@@ -12,20 +12,17 @@ contract MockERC721 is ERC721 {
     function mint(address to, uint256 tokenId) external {
         _mint(to, tokenId);
     }
-
-    // function approve(address to, uint256 tokenId) external {
-    //   _approve[tokenId] = to;
-    // }
-
-    // function ownerOf(uint256 tokenId) external view returns (address) {
-    //    return _owners[tokenId];
-    // }
 }
 
 contract EnglishAuctionFactoryTest is Test {
     EnglishAuctionFactory private englishAuctionFactory;
     MockERC721 private nft;
-    address private seller;
+
+    address private seller = vm.addr(1);
+
+    uint256 private constant TOKEN_ID = 1;
+    uint256 private constant AUCTION_DURATION = 2 days;
+    uint256 private constant MIN_BID_INCREMENT = 0.01 ether;
 
     event AuctionCreated(
         address indexed auctionAddress,
@@ -36,46 +33,163 @@ contract EnglishAuctionFactoryTest is Test {
         uint256 minBidIncrement
     );
 
+    event AuctionRemoved(address indexed nft, uint256 indexed tokenId);
+
     function setUp() public {
         englishAuctionFactory = new EnglishAuctionFactory();
-        seller = vm.addr(1);
-        vm.deal(seller, 10 ether);
-
         nft = new MockERC721();
-        uint256 tokenId = 1;
-        nft.mint(seller, tokenId);
-
-        vm.startPrank(seller);
-        nft.approve(address(this), tokenId);
-        vm.stopPrank();
+        vm.deal(seller, 10 ether);
     }
 
     function testCreateAuction() public {
-        // Set both msg.sender and tx.origin to be the seller
-        vm.prank(seller, seller);
-        vm.deal(seller, 10 ether);
+        nft.mint(seller, TOKEN_ID);
 
-        vm.expectEmit(false, true, true, true);
-        emit AuctionCreated(address(0), seller, address(nft), 1, 2 days, 0.01 ether);
+        vm.prank(seller);
+        nft.approve(address(englishAuctionFactory), TOKEN_ID);
 
-        address auctionAddress = englishAuctionFactory.createAuction(address(nft), 1, 2 days, 0.01 ether);
-        EnglishAuction createdAuction = EnglishAuction(payable(auctionAddress));
+        vm.prank(seller);
+        address auctionAddress =
+            englishAuctionFactory.createAuction(address(nft), TOKEN_ID, AUCTION_DURATION, MIN_BID_INCREMENT);
 
-        assertEq(englishAuctionFactory.allAuctions(0), auctionAddress, "Auction not added to allAuctions");
-        assertEq(createdAuction.seller(), seller, "Seller address incorrect");
-        assertEq(address(createdAuction.nft()), address(nft), "NFT address incorrect");
-        assertEq(createdAuction.nftId(), 1, "Token ID incorrect");
-        assertEq(createdAuction.duration(), 2 days, "Duration incorrect");
-        assertEq(createdAuction.minBidIncrement(), 0.01 ether, "Min bid increment incorrect");
+        EnglishAuction auction = EnglishAuction(payable(auctionAddress));
+
+        assertEq(englishAuctionFactory.allAuctions(0), auctionAddress);
+
+        assertEq(auction.seller(), seller);
+        assertEq(address(auction.nft()), address(nft));
+        assertEq(auction.nftId(), TOKEN_ID);
+        assertEq(auction.duration(), AUCTION_DURATION);
+        assertEq(auction.minBidIncrement(), MIN_BID_INCREMENT);
     }
 
     function testCannotCreateDuplicateAuction() public {
-        vm.prank(seller, seller);
-        vm.deal(seller, 10 ether);
-        englishAuctionFactory.createAuction(address(nft), 1, 2 days, 0.01 ether);
+        nft.mint(seller, TOKEN_ID);
 
-        // Try to create another auction for the same NFT and token ID
-        vm.expectRevert("Auction already exists for this NFT");
-        englishAuctionFactory.createAuction(address(nft), 1, 2 days, 0.01 ether);
+        vm.prank(seller);
+        nft.approve(address(englishAuctionFactory), TOKEN_ID);
+
+        vm.prank(seller);
+        englishAuctionFactory.createAuction(address(nft), TOKEN_ID, AUCTION_DURATION, MIN_BID_INCREMENT);
+
+        vm.prank(seller);
+        vm.expectRevert("Auction already exists");
+
+        englishAuctionFactory.createAuction(address(nft), TOKEN_ID, AUCTION_DURATION, MIN_BID_INCREMENT);
+    }
+
+    function testCreateAuctionRevertsOnZeroAddress() public {
+        vm.prank(seller);
+        vm.expectRevert("Invalid NFT address");
+        englishAuctionFactory.createAuction(address(0), TOKEN_ID, AUCTION_DURATION, MIN_BID_INCREMENT);
+    }
+
+    function testCreateAuctionRevertsOnZeroDuration() public {
+        vm.prank(seller);
+        vm.expectRevert("Duration must be greater than zero");
+        englishAuctionFactory.createAuction(address(nft), TOKEN_ID, 0, MIN_BID_INCREMENT);
+    }
+
+    function testCreateAuctionRevertsOnDurationTooLong() public {
+        vm.prank(seller);
+        vm.expectRevert("Duration too long");
+        uint256 overDuration = 30 days + 1;
+
+        englishAuctionFactory.createAuction(address(nft), TOKEN_ID, overDuration, MIN_BID_INCREMENT);
+    }
+
+    function testCreateAuctionRevertsOnZeroIncrement() public {
+        vm.prank(seller);
+        vm.expectRevert("Min bid increment must be greater than zero");
+        englishAuctionFactory.createAuction(address(nft), TOKEN_ID, AUCTION_DURATION, 0);
+    }
+
+    function testRemoveAuctionSucceedsAfterEnded() public {
+        nft.mint(seller, TOKEN_ID);
+
+        vm.startPrank(seller);
+        nft.approve(address(englishAuctionFactory), TOKEN_ID);
+        address auctionAddr =
+            englishAuctionFactory.createAuction(address(nft), TOKEN_ID, AUCTION_DURATION, MIN_BID_INCREMENT);
+
+        nft.approve(auctionAddr, TOKEN_ID);
+        EnglishAuction(payable(auctionAddr)).start();
+
+        vm.warp(block.timestamp + AUCTION_DURATION + 1);
+
+        EnglishAuction(payable(auctionAddr)).end();
+
+        vm.expectEmit(true, true, false, false);
+        emit AuctionRemoved(address(nft), TOKEN_ID);
+
+        englishAuctionFactory.removeAuction(address(nft), TOKEN_ID);
+        vm.stopPrank();
+
+        assertEq(englishAuctionFactory.activeAuctions(address(nft), TOKEN_ID), address(0));
+    }
+
+    function testRemoveAuctionSucceedsFailsNotEnded() public {
+        nft.mint(seller, TOKEN_ID);
+
+        vm.startPrank(seller);
+        nft.approve(address(englishAuctionFactory), TOKEN_ID);
+
+        address auctionAddr =
+            englishAuctionFactory.createAuction(address(nft), TOKEN_ID, AUCTION_DURATION, MIN_BID_INCREMENT);
+
+        nft.approve(auctionAddr, TOKEN_ID);
+        EnglishAuction(payable(auctionAddr)).start();
+
+        vm.warp(block.timestamp + AUCTION_DURATION + 1);
+
+        vm.expectRevert("Auction has not ended yet");
+        englishAuctionFactory.removeAuction(address(nft), TOKEN_ID);
+
+        vm.stopPrank();
+    }
+
+    function testRemoveAuctionFailsIfNoAuction() public {
+        vm.expectRevert("No active auction for the NFT");
+        englishAuctionFactory.removeAuction(address(nft), TOKEN_ID);
+    }
+
+    function testFuzzCreateAuctionValidArgs(uint256 duration, uint256 increment, address user, uint256 tokenId)
+        public
+    {
+        vm.assume(user != address(0));
+        vm.assume(duration > 0 && duration <= englishAuctionFactory.MAX_AUCTION_DURATION());
+        vm.assume(increment > 0);
+        vm.assume(tokenId > 0 && tokenId < type(uint256).max);
+
+        nft.mint(user, tokenId);
+
+        vm.startPrank(user);
+        nft.approve(address(englishAuctionFactory), tokenId);
+        address auctionAddress = englishAuctionFactory.createAuction(address(nft), tokenId, duration, increment);
+        vm.stopPrank();
+
+        assertEq(englishAuctionFactory.activeAuctions(address(nft), tokenId), auctionAddress);
+    }
+
+    function testFuzzCreateAuctionRejectsZeroIncrement(uint256 tokenId, uint256 duration) public {
+        vm.assume(tokenId > 0 && tokenId < type(uint256).max);
+        vm.assume(duration > 0 && duration <= englishAuctionFactory.MAX_AUCTION_DURATION());
+
+        nft.mint(seller, tokenId);
+        vm.startPrank(seller);
+        nft.approve(address(englishAuctionFactory), tokenId);
+        vm.expectRevert("Min bid increment must be greater than zero");
+        englishAuctionFactory.createAuction(address(nft), tokenId, duration, 0);
+        vm.stopPrank();
+    }
+
+    function testFuzzCreateAuctionRejectsDurationTooLong(uint256 tokenId, uint256 longDuration) public {
+        vm.assume(longDuration > englishAuctionFactory.MAX_AUCTION_DURATION());
+        nft.mint(seller, tokenId);
+
+        vm.startPrank(seller);
+        nft.approve(address(englishAuctionFactory), tokenId);
+        vm.expectRevert("Duration too long");
+        englishAuctionFactory.createAuction(address(nft), tokenId, longDuration, MIN_BID_INCREMENT);
+        vm.stopPrank();
     }
 }
