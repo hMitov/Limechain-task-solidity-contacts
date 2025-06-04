@@ -4,9 +4,10 @@ pragma solidity ^0.8.26;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 
-import "forge-std/console.sol";
-
+/// @dev ERC721 interface needed for this auction functionality
 interface IERC721 {
     function safeTransferFrom(address from, address to, uint256 tokenId) external;
     function approve(address to, uint256 tokenId) external;
@@ -15,12 +16,72 @@ interface IERC721 {
     function isApprovedForAll(address owner, address operator) external view returns (bool);
 }
 
-contract EnglishAuction is Ownable, IERC721Receiver, ReentrancyGuard {
+/// @title  English Auction
+/// @notice This contract provides an English auction for a specific ERC721 token.
+/// @dev    It tracks bids, refunds and handles secure transfers.
+contract EnglishAuction is Ownable, IERC721Receiver, ReentrancyGuard, Pausable {
+    /// @dev NFT token contract being auctioned
+    IERC721 public immutable nft;
+
+    /// @dev Token ID of the NFT being auctioned
+    uint256 public immutable nftId;
+
+    /// @notice The minimum amount by which a new bid must exceed the previous highest bid
+    uint256 public minBidIncrement;
+
+    /// @notice Duration of the auction
+    uint256 public immutable duration;
+
+    /// @notice Address of the seller (auction owner)
+    address payable public immutable seller;
+
+    /// @dev Bit flags for auction state (started/ended)
+    uint8 private statusFlags;
+    uint8 private constant STARTED_FLAG = 1 << 0;
+    uint8 private constant ENDED_FLAG = 1 << 1;
+
+    /// @notice Timestamp when the auction ends
+    uint256 public endAt;
+
+    /// @notice Grace period during which last-minute bids will extend the auction
+    uint256 private constant BID_EXTENSION_GRACE_PERIOD = 10 minutes;
+
+    /// @notice Duration to extend the auction when grace period logic triggers
+    uint256 private constant EXTENSION_DURATION = 5 minutes;
+
+    /// @notice Current highest bidder
+    address public highestBidder;
+
+    /// @notice Current highest bid amount in wei
+    uint256 public highestBid;
+
+    /// @dev Tracks refundable balances of outbid users
+    mapping(address => uint256) public bids;
+
+    /// @notice          Emitted when the auction is started
+    /// @param startTime The timestamp at which the auction was started
+    /// @param endTime   The timestamp when the auction will end
     event AuctionStarted(uint256 startTime, uint256 endTime);
+
+    /// @notice       Emitted when a new valid bid is placed
+    /// @param bidder The address of the bidder
+    /// @param amount The amount of the bid
     event BidPlaced(address indexed bidder, uint256 amount);
+
+    /// @notice       Emitted when a bidder withdraws their balance
+    /// @param bidder The address of the withdrawing bidder
+    /// @param amount The amount withdrawn
     event Withdrawal(address indexed bidder, uint256 amount);
+
+    /// @notice       Emitted when the auction ends
+    /// @param winner The address of the winning bidder
+    /// @param amount The final winning bid
     event AuctionEnded(address indexed winner, uint256 amount);
+
+    /// @notice Emitted if the auction is cancelled before any bids
     event AuctionCancelled();
+
+    /// @notice Emitted when an auction is created
     event AuctionCreated(
         address indexed auctionAddress,
         address indexed creator,
@@ -30,23 +91,27 @@ contract EnglishAuction is Ownable, IERC721Receiver, ReentrancyGuard {
         uint256 minBidIncrement
     );
 
-    IERC721 public immutable nft;
-    uint256 public immutable nftId;
-    uint256 public minBidIncrement;
-    uint256 public immutable duration;
+    /// @notice Emitted when auction time is extended
+    event AuctionExtended(uint256 newEndTime, address extendedBy);
 
-    address payable public immutable seller;
-    bool public started;
-    bool public ended;
-    uint256 public endAt;
+    /// @notice Emitted if royalty is paid
+    event RoyaltyPaid(address indexed receiver, uint256 amount);
 
-    address public highestBidder;
-    uint256 public highestBid;
-    mapping(address => uint256) public bids;
+    /// @notice The maximum duration an auction can last
+    uint256 public constant MAX_DURATION = 30 days;
 
+    /// @notice                 Initializes a new English Auction contract
+    /// @param _seller          The address of the NFT owner
+    /// @param _nft             The NFT contract address
+    /// @param _nftId           The ID of the auctioned NFT
+    /// @param _duration        Duration of the auction (in seconds)
+    /// @param _minBidIncrement Minimum increment required for new bids
     constructor(address _seller, address _nft, uint256 _nftId, uint256 _duration, uint256 _minBidIncrement)
         Ownable(_seller)
     {
+        require(_nft != address(0), "Invalid NFT address");
+        require(_duration > 0 && _duration <= MAX_DURATION, "Invalid auction duration");
+
         nft = IERC721(_nft);
         nftId = _nftId;
         seller = payable(_seller);
@@ -54,39 +119,76 @@ contract EnglishAuction is Ownable, IERC721Receiver, ReentrancyGuard {
         minBidIncrement = _minBidIncrement;
     }
 
-    function start() external onlyOwner {
-        require(!started, "Auction has already started.");
-        require(nft.getApproved(nftId) == address(this), "Auction contract is not approved to manage this NFT.");
-
-        started = true;
-        endAt = block.timestamp + duration;
-        nft.safeTransferFrom(seller, address(this), nftId);
-
-        emit AuctionStarted(block.timestamp, endAt);
+    /// @notice Pauses the auction (for bidding and withdrawal)
+    function pause() external onlyOwner {
+        _pause();
     }
 
-    function bid() external payable {
-        require(started, "Auction has not started yet.");
-        require(block.timestamp < endAt, "Auction time has already elapsed, no bids area allowed.");
-        require(msg.value >= highestBid + minBidIncrement, "Your bid is tool low.");
+    /// @notice Resumes the auction
+    function unpause() external onlyOwner {
+        _unpause();
+    }
 
-        if (highestBidder != address(0)) {
-            bids[highestBidder] += highestBid;
-            console.log("Highest bidder: ", highestBidder);
-            console.log(bids[highestBidder]);
+    /// @notice Returns true if the auction has started or else false
+    function isStarted() public view returns (bool) {
+        return (statusFlags & STARTED_FLAG) != 0;
+    }
+
+    /// @notice Returns true if the auction has ended or else false
+    function isEnded() public view returns (bool) {
+        return (statusFlags & ENDED_FLAG) != 0;
+    }
+
+    /// @notice Starts the auction by transferring the NFT into the contract
+    /// @dev    Only callable by the owner. NFT must be approved before that.
+    function start() external onlyOwner {
+        require(!isStarted(), "Auction already started");
+        require(nft.getApproved(nftId) == address(this), "Auction not approved for NFT");
+
+        statusFlags |= STARTED_FLAG;
+        uint256 currentTime = block.timestamp;
+        endAt = currentTime + duration;
+        nft.safeTransferFrom(seller, address(this), nftId);
+
+        emit AuctionStarted(currentTime, endAt);
+    }
+
+    /// @notice Place a bid for the auctioned NFT
+    /// @dev    Automatically refunds previous highest bidder. Triggers auction extension if within grace period.
+    function bid() external payable whenNotPaused {
+        require(isStarted(), "Auction not started");
+
+        uint256 currentTime = block.timestamp;
+        uint256 endTime = endAt;
+        address currentHighestBidder = highestBidder;
+        uint256 currentHighestBid = highestBid;
+        uint256 increment = minBidIncrement;
+
+        require(currentTime < endTime, "Auction already ended");
+        require(msg.value >= currentHighestBid + increment, "Bid is too low");
+
+        uint256 timeLeft = endTime - currentTime;
+        if (timeLeft <= BID_EXTENSION_GRACE_PERIOD) {
+            unchecked {
+                endAt = endTime + EXTENSION_DURATION;
+            }
+            emit AuctionExtended(endAt, msg.sender);
+        }
+
+        if (currentHighestBidder != address(0)) {
+            bids[currentHighestBidder] += currentHighestBid;
         }
 
         highestBid = msg.value;
-        console.log("Highest bid is", highestBid);
         highestBidder = msg.sender;
 
         emit BidPlaced(msg.sender, msg.value);
     }
 
-    function withdraw() external nonReentrant {
+    /// @notice Withdraw funds if the bidder was outbid
+    function withdraw() external nonReentrant whenNotPaused {
         uint256 bal = bids[msg.sender];
-        console.log(bal);
-        require(bal > 0, "There is no balance to withdraw.");
+        require(bal > 0, "No balance to withdraw");
         bids[msg.sender] = 0;
 
         _safeTransferETH(msg.sender, bal);
@@ -94,46 +196,77 @@ contract EnglishAuction is Ownable, IERC721Receiver, ReentrancyGuard {
         emit Withdrawal(msg.sender, bal);
     }
 
+    /// @notice Cancel the auction if it has started but received no bids
     function cancelAuction() external onlyOwner {
-        require(started, "Auction has not started yet.");
-        require(!ended, "Auction has already ended.");
-        require(highestBidder == address(0), "There are already bids, you cannot cancel auction.");
+        require(isStarted(), "Auction not started");
+        require(!isEnded(), "Auction already ended");
+        require(highestBidder == address(0), "Cannot cancel after first bid");
 
-        ended = true;
+        statusFlags |= ENDED_FLAG;
         nft.safeTransferFrom(address(this), seller, nftId);
 
         emit AuctionCancelled();
     }
 
+    /// @notice Finalizes the auction and transfers the NFT and funds
     function end() external payable onlyOwner {
-        require(started, "Auction has not started yet.");
-        require(!ended, "Auction has already ended.");
+        require(isStarted(), "Auction not started");
+        require(!isEnded(), "Auction already ended");
 
-        ended = true;
-        if (highestBidder != address(0)) {
-            nft.safeTransferFrom(address(this), highestBidder, nftId);
-            _safeTransferETH(seller, highestBid);
+        address currentHighestBidder = highestBidder;
+        statusFlags |= ENDED_FLAG;
+
+        uint256 salePrice = highestBid;
+        if (currentHighestBidder != address(0)) {
+            nft.safeTransferFrom(address(this), currentHighestBidder, nftId);
+
+            address royaltyReceiver;
+            uint256 royaltyAmount;
+
+            try IERC2981(address(nft)).royaltyInfo(nftId, salePrice) returns (address receiver, uint256 amount) {
+                if (receiver != address(0) && amount > 0 && amount < salePrice) {
+                    royaltyReceiver = receiver;
+                    royaltyAmount = amount;
+                }
+            } catch {
+                // Royalty is not supported by this contract, do nothing
+            }
+
+            if (royaltyAmount > 0) {
+                _safeTransferETH(royaltyReceiver, royaltyAmount);
+                _safeTransferETH(seller, salePrice - royaltyAmount);
+                emit RoyaltyPaid(royaltyReceiver, royaltyAmount);
+            } else {
+                _safeTransferETH(seller, salePrice);
+            }
         } else {
             nft.safeTransferFrom(address(this), seller, nftId);
         }
 
-        emit AuctionEnded(highestBidder, highestBid);
+        emit AuctionEnded(currentHighestBidder, salePrice);
     }
 
+    /// @dev Safely transfers ETH to a recipient
     function _safeTransferETH(address receiver, uint256 amount) internal {
         (bool success,) = receiver.call{value: amount}("");
-        require(success, "ETH transfer failed.");
+        require(success, "ETH transfer failed");
     }
 
+    /// @notice It handles the receipt of an ERC721 token
+    /// @dev    This function is called by the ERC721 contract when `safeTransferFrom` is used to transfer
+    ///         an NFT to this contract. It returns the required selector to confirm the transfer.
     function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {
         return IERC721Receiver.onERC721Received.selector;
     }
 
+    /// @dev Prevent direct ETH transfers
     receive() external payable {
-        revert("Direct payments not allowed.");
+        revert("Direct ETH transfers not allowed");
     }
 
+    /// @notice Fallback function to reject unexpected or invalid calls
+    /// @dev    This contract only accepts ETH through designated bidding methods.
     fallback() external payable {
-        revert("This contract accepts ETH bids only.");
+        revert("Contract only accepts ETH bids via bid()");
     }
 }
