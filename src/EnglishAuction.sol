@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
@@ -19,7 +19,7 @@ interface IERC721 {
 /// @title  English Auction
 /// @notice This contract provides an English auction for a specific ERC721 token.
 /// @dev    It tracks bids, refunds and handles secure transfers.
-contract EnglishAuction is Ownable, IERC721Receiver, ReentrancyGuard, Pausable {
+contract EnglishAuction is AccessControl, IERC721Receiver, ReentrancyGuard, Pausable {
     /// @dev NFT token contract being auctioned
     IERC721 public immutable nft;
 
@@ -100,16 +100,17 @@ contract EnglishAuction is Ownable, IERC721Receiver, ReentrancyGuard, Pausable {
     /// @notice The maximum duration an auction can last
     uint256 public constant MAX_DURATION = 30 days;
 
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+
     /// @notice                 Initializes a new English Auction contract
     /// @param _seller          The address of the NFT owner
     /// @param _nft             The NFT contract address
     /// @param _nftId           The ID of the auctioned NFT
     /// @param _duration        Duration of the auction (in seconds)
     /// @param _minBidIncrement Minimum increment required for new bids
-    constructor(address _seller, address _nft, uint256 _nftId, uint256 _duration, uint256 _minBidIncrement)
-        Ownable(_seller)
-    {
-        require(_nft != address(0), "Invalid NFT address");
+    constructor(address _seller, address _nft, uint256 _nftId, uint256 _duration, uint256 _minBidIncrement) {
+        require(_seller != address(0), "Seller cannot be zero address");
+        require(_nft != address(0), "NFT cannot be zero address");
         require(_duration > 0 && _duration <= MAX_DURATION, "Invalid auction duration");
 
         nft = IERC721(_nft);
@@ -117,15 +118,23 @@ contract EnglishAuction is Ownable, IERC721Receiver, ReentrancyGuard, Pausable {
         seller = payable(_seller);
         duration = _duration;
         minBidIncrement = _minBidIncrement;
+
+        _grantRole(DEFAULT_ADMIN_ROLE, _seller);
+        _grantRole(ADMIN_ROLE, _seller);
+    }
+
+    modifier onlyAdmin() {
+        require(hasRole(ADMIN_ROLE, msg.sender), "Caller is not an admin");
+        _;
     }
 
     /// @notice Pauses the auction (for bidding and withdrawal)
-    function pause() external onlyOwner {
+    function pause() external onlyAdmin {
         _pause();
     }
 
     /// @notice Resumes the auction
-    function unpause() external onlyOwner {
+    function unpause() external onlyAdmin {
         _unpause();
     }
 
@@ -140,8 +149,8 @@ contract EnglishAuction is Ownable, IERC721Receiver, ReentrancyGuard, Pausable {
     }
 
     /// @notice Starts the auction by transferring the NFT into the contract
-    /// @dev    Only callable by the owner. NFT must be approved before that.
-    function start() external onlyOwner {
+    /// @dev    Only callable by the seller. NFT must be approved before that.
+    function start() external onlyAdmin {
         require(!isStarted(), "Auction already started");
         require(nft.getApproved(nftId) == address(this), "Auction not approved for NFT");
 
@@ -197,7 +206,7 @@ contract EnglishAuction is Ownable, IERC721Receiver, ReentrancyGuard, Pausable {
     }
 
     /// @notice Cancel the auction if it has started but received no bids
-    function cancelAuction() external onlyOwner {
+    function cancelAuction() external onlyAdmin {
         require(isStarted(), "Auction not started");
         require(!isEnded(), "Auction already ended");
         require(highestBidder == address(0), "Cannot cancel after first bid");
@@ -209,7 +218,7 @@ contract EnglishAuction is Ownable, IERC721Receiver, ReentrancyGuard, Pausable {
     }
 
     /// @notice Finalizes the auction and transfers the NFT and funds
-    function end() external payable onlyOwner {
+    function end() external payable onlyAdmin {
         require(isStarted(), "Auction not started");
         require(!isEnded(), "Auction already ended");
 

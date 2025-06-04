@@ -11,9 +11,11 @@ contract MyERC721 is Test {
     string private constant TOKEN_SYMBOL = "tokenSymbol1";
     string private constant URI = "https://example.com/token-image.png";
     uint256 private constant MAX_SUPPLY = 10000;
-    address private nonOwner = address(1);
-    address private whitelistedBuyer1 = address(2);
-    address private buyer = address(3);
+    address private notAdmin = address(1);
+    address private receiverRoyalty = address(5);
+    address private whitelister = address(2);
+    address private whitelistedBuyer1 = address(3);
+    address private buyer = address(4);
     uint96 private constant FEE_NOMINATOR = 700;
 
     event PricesUpdated(uint256 privateSalePrice, uint256 publicSalePrice);
@@ -28,34 +30,42 @@ contract MyERC721 is Test {
     error OwnableUnauthorizedAccount(address account);
 
     function setUp() public {
-        nft = new MyNFT(TOKEN_NAME, TOKEN_SYMBOL, URI, MAX_SUPPLY, nonOwner, FEE_NOMINATOR);
+        nft = new MyNFT(TOKEN_NAME, TOKEN_SYMBOL, URI, MAX_SUPPLY, receiverRoyalty, FEE_NOMINATOR);
     }
 
     function testContructorRevertsOnInAppropriateArgs() public {
         vm.expectRevert("NFT name must not be empty");
-        new MyNFT("", TOKEN_SYMBOL, URI, MAX_SUPPLY, nonOwner, FEE_NOMINATOR);
+        new MyNFT("", TOKEN_SYMBOL, URI, MAX_SUPPLY, receiverRoyalty, FEE_NOMINATOR);
 
         vm.expectRevert("NFT symbol must not be empty");
-        new MyNFT(TOKEN_NAME, "", URI, MAX_SUPPLY, nonOwner, FEE_NOMINATOR);
+        new MyNFT(TOKEN_NAME, "", URI, MAX_SUPPLY, receiverRoyalty, FEE_NOMINATOR);
 
         vm.expectRevert("Base URI must not be empty");
-        new MyNFT(TOKEN_NAME, TOKEN_SYMBOL, "", MAX_SUPPLY, nonOwner, FEE_NOMINATOR);
+        new MyNFT(TOKEN_NAME, TOKEN_SYMBOL, "", MAX_SUPPLY, receiverRoyalty, FEE_NOMINATOR);
 
         vm.expectRevert("Max supply must be greater than zero");
-        new MyNFT(TOKEN_NAME, TOKEN_SYMBOL, URI, 0, nonOwner, FEE_NOMINATOR);
+        new MyNFT(TOKEN_NAME, TOKEN_SYMBOL, URI, 0, receiverRoyalty, FEE_NOMINATOR);
 
         vm.expectRevert("Royalty receiver cannot be zero address");
         new MyNFT(TOKEN_NAME, TOKEN_SYMBOL, URI, MAX_SUPPLY, address(0), FEE_NOMINATOR);
 
         vm.expectRevert("Royalty fee will exceed salePrice");
-        new MyNFT(TOKEN_NAME, TOKEN_SYMBOL, URI, MAX_SUPPLY, nonOwner, 20000);
+        new MyNFT(TOKEN_NAME, TOKEN_SYMBOL, URI, MAX_SUPPLY, receiverRoyalty, 20000);
     }
 
-    function testTogglePrivateSaleFailNotOwner() public {
+    function testAdminCanGrantAndRevokeWhitelister() public {
+        nft.grantWhitelister(whitelister);
+        assertTrue(nft.hasRole(nft.WHITELIST_ROLE(), whitelister));
+
+        nft.revokeWhitelister(whitelister);
+        assertFalse(nft.hasRole(nft.WHITELIST_ROLE(), whitelister));
+    }
+
+    function testTogglePrivateSaleFailNotAdmin() public {
         bool initialPrivateSaleState = nft.isPrivateSaleActive();
 
-        vm.startPrank(nonOwner);
-        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner));
+        vm.startPrank(notAdmin);
+        vm.expectRevert("Caller is not an admin");
         nft.togglePrivateSale();
         vm.stopPrank();
 
@@ -71,11 +81,11 @@ contract MyERC721 is Test {
         assertNotEq(initialPrivateSaleState, nft.isPrivateSaleActive());
     }
 
-    function testTogglePublicSaleFailNotOwner() public {
+    function testTogglePublicSaleFailNotAdmin() public {
         bool initialPublicSaleState = nft.isPublicSaleActive();
 
-        vm.startPrank(nonOwner);
-        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner));
+        vm.startPrank(notAdmin);
+        vm.expectRevert("Caller is not an admin");
         nft.togglePublicSale();
         vm.stopPrank();
 
@@ -100,11 +110,12 @@ contract MyERC721 is Test {
         assertEq(true, nft.whitelist(whitelistedBuyer1));
     }
 
-    function testAddAddressToWhitelistFailNotOwner() public {
+    function testAddAddressToWhitelistFailNotAdmin() public {
         address whitelistSellers = whitelistedBuyer1;
+        address nonWhitelisted = address(6);
 
-        vm.startPrank(nonOwner);
-        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner));
+        vm.startPrank(nonWhitelisted);
+        vm.expectRevert("Caller has no whitelist role");
         nft.addAddressToWhitelist(whitelistSellers);
 
         vm.stopPrank();
@@ -138,13 +149,13 @@ contract MyERC721 is Test {
         assertEq(false, nft.whitelist(whitelistedBuyer1));
     }
 
-    function testRemoveAddressFromWhitelistFailNotOwner() public {
+    function testRemoveAddressFromWhitelistFailNotAdmin() public {
         testAddAddressToWhitelist();
 
         address removeSeller = whitelistedBuyer1;
 
-        vm.startPrank(nonOwner);
-        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner));
+        vm.startPrank(notAdmin);
+        vm.expectRevert("Caller has no whitelist role");
         nft.removeAddressFromWhitelist(removeSeller);
         vm.stopPrank();
     }
@@ -163,12 +174,12 @@ contract MyERC721 is Test {
         nft.removeAddressFromWhitelist(removeSeller);
     }
 
-    function testSetPricesFailNotOwner() public {
+    function testSetPricesFailNotAdmin() public {
         uint256 privateSellPrice = 5 ether;
         uint256 publicSellPrice = 7 ether;
 
-        vm.startPrank(nonOwner);
-        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner));
+        vm.startPrank(notAdmin);
+        vm.expectRevert("Caller is not an admin");
         nft.setPrices(privateSellPrice, publicSellPrice);
         vm.stopPrank();
     }
