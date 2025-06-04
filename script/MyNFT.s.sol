@@ -35,5 +35,5 @@ contract MyNFTScript is Script, ScriptUtils {
         mynft.togglePublicSale();
 
         vm.stopBroadcast();
-    }   
+    }
 }

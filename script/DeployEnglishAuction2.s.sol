@@ -21,7 +21,7 @@ contract DeployEnglishAuction2Script is Script, ScriptUtils {
     /// - MINT_PUBLIC_PRICE: Price required to mint an NFT during the public sale
     /// - AUCTION_DURATION: Duration (in seconds) for the auction
     /// - AUCTION_MIN_BID_INCREMENT: Minimum bid increment for the auction
-    /// This function mints an NFT, creates an auction, and approves the auction to transfer the token.   
+    /// This function mints an NFT, creates an auction, and approves the auction to transfer the token.
     function run() public {
         uint256 privateKey = getEnvPrivateKey("TEST_ACCOUNT_2_PRIVATE_KEY");
 

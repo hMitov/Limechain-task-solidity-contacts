@@ -47,5 +47,5 @@ abstract contract ScriptUtils is Script {
         } catch {
             revert(string.concat(key, " is missing or invalid in .env"));
         }
-    } 
+    }
 }
