@@ -2,17 +2,17 @@
 pragma solidity ^0.8.26;
 
 import "forge-std/Script.sol";
-import {ScriptConfig} from "./ScriptConfig.s.sol";
+import {EnvLoader} from "./EnvLoader.s.sol";
 import {EnglishAuctionFactory} from "../src/EnglishAuctionFactory.sol";
 import {EnglishAuction} from "../src/EnglishAuction.sol";
 import {MyNFT} from "../src/MyNFT.sol";
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
-/// @title  MintAndCreateAuction1Script
+/// @title  MintAndCreateAuction1
 /// @notice Mints an NFT and creates an auction for it using the EnglishAuctionFactory
 /// @dev    Requires environment variables to be set in `.env` file
-contract MintAndCreateAuction1Script is Script, ScriptConfig {
+contract MintAndCreateAuction1 is EnvLoader {
     EnglishAuctionFactory private factory;
     MyNFT private nft;
     uint256 private mintPrice;

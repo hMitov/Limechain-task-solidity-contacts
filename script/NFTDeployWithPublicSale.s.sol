@@ -2,13 +2,13 @@
 pragma solidity ^0.8.26;
 
 import "forge-std/Script.sol";
-import {ScriptConfig} from "./ScriptConfig.s.sol";
+import {EnvLoader} from "./EnvLoader.s.sol";
 import {MyNFT} from "../src/MyNFT.sol";
 
-/// @title  NFTDeployWithPublicSaleScript
+/// @title  NFTDeployWithPublicSale
 /// @notice Deployment script for the MyNFT ERC721 contract
 /// @dev    Requires environment variables to be set in `.env` file
-contract NFTDeployWithPublicSaleScript is Script, ScriptConfig {
+contract NFTDeployWithPublicSale is EnvLoader {
     MyNFT public mynft;
     uint256 private privateKey;
     string private name;
