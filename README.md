@@ -69,17 +69,17 @@ The `--broadcast` flag can be used with different verbosity levels:
 1. Deploy the NFT contract:
 ```shell
 source .env            
-forge script script/DeployNFT.s.sol:DeployNFTScript --rpc-url $SEPOLIA_RPC_URL --broadcast -vvv
+forge script script/NFTDeployWithPublicSale.s.sol:NFTDeployWithPublicSaleScript --rpc-url $SEPOLIA_RPC_URL --broadcast -vvv
 ```
 ⚠️ **IMPORTANT**: You must set the following contract address in .env
    ```
    NFT_CONTRACT_ADDRESS=your_nft_contract_address
    ```
 
-2. Deploy the Auction Factory:
+2. Deploy the English Auction factory:
 ```shell
 source .env            
-forge script script/DeployFactory.s.sol:DeployFactoryScript --rpc-url $SEPOLIA_RPC_URL --broadcast -vvv
+forge script script/DeployAuctionFactory.s.sol:DeployAuctionFactoryScript --rpc-url $SEPOLIA_RPC_URL --broadcast -vvv
 
 ```
 ⚠️ **IMPORTANT**: You must set the following contract address in .env
@@ -90,7 +90,7 @@ forge script script/DeployFactory.s.sol:DeployFactoryScript --rpc-url $SEPOLIA_R
 3. Create first auction:
 ```shell
 source .env      
-forge script script/DeployEnglishAuction1.s.sol:DeployEnglishAuction1Script --rpc-url $SEPOLIA_RPC_URL --broadcast -vvvvv
+forge script script/MintAndCreateAuction1.s.sol:MintAndCreateAuction1Script --rpc-url $SEPOLIA_RPC_URL --broadcast -vvvvv
 ```
 
 ⚠️ **IMPORTANT**: You must set the following contract address in .env
@@ -107,7 +107,7 @@ forge script script/StartAuction1.s.sol:StartAuction1Script --rpc-url $SEPOLIA_R
 5. Create second auction:
 ```shell
 source .env      
-forge script script/DeployEnglishAuction2.s.sol:DeployEnglishAuction2Script --rpc-url $SEPOLIA_RPC_URL --broadcast -vvvvv
+forge script script/MintAndCreateAuction2.s.sol:MintAndCreateAuction2Script --rpc-url $SEPOLIA_RPC_URL --broadcast -vvvvv
 ```
 
 ⚠️ **IMPORTANT**: You must set the following contract address in .env
