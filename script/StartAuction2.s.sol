@@ -2,13 +2,13 @@
 pragma solidity ^0.8.26;
 
 import "forge-std/Script.sol";
-import {ScriptConfig} from "./ScriptConfig.s.sol";
+import {EnvLoader} from "./EnvLoader.s.sol";
 import {EnglishAuction} from "../src/EnglishAuction.sol";
 
-/// @title  StartAuction2Script
+/// @title  StartAuction2
 /// @notice A script to start a specific EnglishAuction contract using a private key from environment
 /// @dev    Requires environment variables to be set in `.env` file
-contract StartAuction2Script is Script, ScriptConfig {
+contract StartAuction2 is EnvLoader {
     uint256 private privateKey;
     address private auctionAddress;
 

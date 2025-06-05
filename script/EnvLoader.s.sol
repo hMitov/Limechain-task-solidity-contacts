@@ -3,9 +3,9 @@ pragma solidity ^0.8.26;
 
 import "forge-std/Script.sol";
 
-/// @title  ScriptConfig
+/// @title  EnvLoader
 /// @notice Base abstract script for loading and validating environment variables in Forge scripts
-abstract contract ScriptConfig is Script {
+abstract contract EnvLoader is Script {
     /// @notice Abstract method to be implemented by inheriting scripts for loading .env variables
     /// @dev    Called at the beginning of the `run()` method in deployment scripts
     function loadEnvVars() internal virtual;

@@ -2,13 +2,13 @@
 pragma solidity ^0.8.26;
 
 import "forge-std/Script.sol";
-import {ScriptConfig} from "./ScriptConfig.s.sol";
+import {EnvLoader} from "./EnvLoader.s.sol";
 import {EnglishAuctionFactory} from "../src/EnglishAuctionFactory.sol";
 
-/// @title  DeployAuctionFactoryScript
+/// @title  DeployAuctionFactory
 /// @notice Deployment script for the EnglishAuctionFactory contract
 /// @dev    Requires environment variables to be set in `.env` file
-contract DeployAuctionFactoryScript is Script, ScriptConfig {
+contract DeployAuctionFactory is EnvLoader {
     EnglishAuctionFactory public factory;
     uint256 private privateKey;
 
