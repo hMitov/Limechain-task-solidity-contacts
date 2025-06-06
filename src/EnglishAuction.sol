@@ -102,6 +102,9 @@ contract EnglishAuction is AccessControl, IERC721Receiver, ReentrancyGuard, Paus
 
     /// @notice Role identifier for general admin functions
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    
+    /// @notice Role identifier for accounts that can manage the pause/unpause
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");    
 
     /// @notice                 Initializes a new English Auction contract
     /// @param _seller          The address of the NFT owner
@@ -122,6 +125,7 @@ contract EnglishAuction is AccessControl, IERC721Receiver, ReentrancyGuard, Paus
 
         _grantRole(DEFAULT_ADMIN_ROLE, _seller);
         _grantRole(ADMIN_ROLE, _seller);
+        _grantRole(PAUSER_ROLE, _seller);
     }
 
     /// @notice Ensures that only users with the admin role can call
@@ -130,14 +134,28 @@ contract EnglishAuction is AccessControl, IERC721Receiver, ReentrancyGuard, Paus
         _;
     }
 
+    /// @notice Ensures that only users with the pauser role can call
+    modifier onlyPauser() {
+        require(hasRole(PAUSER_ROLE, msg.sender), "Caller is not pauser");
+        _;
+    }    
+
     /// @notice Pauses the auction (for bidding and withdrawal)
-    function pause() external onlyAdmin {
+    function pause() external onlyPauser {
         _pause();
     }
 
     /// @notice Resumes the auction
-    function unpause() external onlyAdmin {
+    function unpause() external onlyPauser {
         _unpause();
+    }
+
+    function grantPauserRole(address account) external onlyAdmin() {
+        grantRole(PAUSER_ROLE, account);
+    }
+
+    function revokePauserRole(address account) external onlyAdmin {
+        revokeRole(PAUSER_ROLE, account);
     }
 
     /// @notice Returns true if the auction has started or else false

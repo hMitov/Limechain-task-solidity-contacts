@@ -52,19 +52,26 @@ contract EnglishAuctionTest is Test {
         vm.stopPrank();
     }
 
-    function testPauseUnpauseByOwner() public {
+    function testPauseUnpauseByPauser() public {
         vm.startPrank(seller);
-        auction.pause();
-        assertTrue(auction.paused());
-        auction.unpause();
+        address pauser = address(4);
+        auction.grantPauserRole(pauser);
         vm.stopPrank();
 
+        vm.startPrank(pauser);
+        auction.pause();
+        vm.stopPrank();
+        assertTrue(auction.paused());
+
+        vm.startPrank(pauser);
+        auction.unpause();
+        vm.stopPrank();
         assertFalse(auction.paused());
     }
 
-    function testPauseFailsIfNotAdmin() public {
+    function testPauseFailsIfNotPauser() public {
         vm.startPrank(nonOwner);
-        vm.expectRevert("Caller is not an admin");
+        vm.expectRevert("Caller is not pauser");
         auction.pause();
         vm.stopPrank();
     }
