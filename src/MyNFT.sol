@@ -118,7 +118,7 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Ensures that only users with the pauser role can call
     modifier onlyPauser() {
-        require(hasRole(PAUSER_ROLE, msg.sender), "Caller is not an pauser");
+        require(hasRole(PAUSER_ROLE, msg.sender), "Caller is not pauser");
         _;
     }
 
@@ -160,7 +160,7 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
         revokeRole(WHITELISTED_ROLE, account);
     }
 
-    function grantPauserRole(address account) external onlyAdmin() {
+    function grantPauserRole(address account) external onlyAdmin {
         grantRole(PAUSER_ROLE, account);
     }
 

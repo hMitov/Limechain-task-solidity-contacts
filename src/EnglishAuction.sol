@@ -150,7 +150,7 @@ contract EnglishAuction is AccessControl, IERC721Receiver, ReentrancyGuard, Paus
         _unpause();
     }
 
-    function grantPauserRole(address account) external onlyAdmin() {
+    function grantPauserRole(address account) external onlyAdmin {
         grantRole(PAUSER_ROLE, account);
     }
 
