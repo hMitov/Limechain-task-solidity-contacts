@@ -16,7 +16,7 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     uint256 public immutable maxSupply;
 
     /// @dev The deployer of the contract
-    address private owner;
+    address private immutable owner;
 
     /// @notice The total number of NFTs minted so far
     uint256 public totalMinted;
@@ -180,6 +180,7 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     /// @notice                  Sets the private sale price
     /// @param _privateSalePrice New price for private sale
     function setPrivateSalePrice(uint256 _privateSalePrice) public onlyAdmin {
+        require(_privateSalePrice > 0, "Private sale price must be greater than zero");
         privateSalePrice = _privateSalePrice;
         emit PricesUpdated(privateSalePrice, publicSalePrice);
     }
@@ -187,6 +188,7 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     /// @notice                 Sets the public sale price
     /// @param _publicSalePrice New price for public sale
     function setPublicSalePrice(uint256 _publicSalePrice) public onlyAdmin {
+        require(_publicSalePrice > 0, "Public sale price must be greater than zero");
         publicSalePrice = _publicSalePrice;
         emit PricesUpdated(privateSalePrice, publicSalePrice);
     }
@@ -197,7 +199,6 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     function setPrices(uint256 _privateSalePrice, uint256 _publicSalePrice) external onlyAdmin {
         setPrivateSalePrice(_privateSalePrice);
         setPublicSalePrice(_publicSalePrice);
-        emit PricesUpdated(privateSalePrice, publicSalePrice);
     }
 
     /// @notice Mints NFT for the sender during the private sale phase.

@@ -5,10 +5,10 @@ import "forge-std/Script.sol";
 import {EnvLoader} from "./EnvLoader.s.sol";
 import {EnglishAuction} from "../src/EnglishAuction.sol";
 
-/// @title  StartAuction1
+/// @title  StartAuction1Script
 /// @notice A script to start a specific EnglishAuction contract using a private key from environment
 /// @dev    Requires environment variables to be set in `.env` file
-contract StartAuction1 is EnvLoader {
+contract StartAuction1Script is EnvLoader {
     uint256 private privateKey;
     address private auctionAddress;
 

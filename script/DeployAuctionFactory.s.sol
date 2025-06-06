@@ -5,10 +5,10 @@ import "forge-std/Script.sol";
 import {EnvLoader} from "./EnvLoader.s.sol";
 import {EnglishAuctionFactory} from "../src/EnglishAuctionFactory.sol";
 
-/// @title  DeployAuctionFactory
+/// @title  DeployAuctionFactoryScript
 /// @notice Deployment script for the EnglishAuctionFactory contract
 /// @dev    Requires environment variables to be set in `.env` file
-contract DeployAuctionFactory is EnvLoader {
+contract DeployAuctionFactoryScript is EnvLoader {
     EnglishAuctionFactory public factory;
     uint256 private privateKey;
 
