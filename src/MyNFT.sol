@@ -32,9 +32,6 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     uint8 private constant PRIVATE_SALE_FLAG = 1 << 0;
     uint8 private constant PUBLIC_SALE_FLAG = 1 << 1;
 
-    /// @notice Tracks addresses allowed to mint in the private sale
-    mapping(address => bool) public whitelist;
-
     /// @notice Base URI for token metadata
     string public baseURI;
 
@@ -65,8 +62,11 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     /// @notice Role identifier for general admin functions
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
-    /// @notice Role identifier for accounts that can manage the whitelist
-    bytes32 public constant WHITELIST_ROLE = keccak256("WHITELIST_ROLE");
+    /// @notice Role identifier for accounts that can manage the whitelisting of users
+    bytes32 public constant WHITELIST_ADMIN_ROLE = keccak256("WHITELIST_ADMIN_ROLE");
+
+    /// @notice Role identifier for accounts that are whitelisted
+    bytes32 public constant WHITELISTED_ROLE = keccak256("WHITELISTED_ROLE");
 
     /// @param _name                Name of the NFT collection
     /// @param _symbol              Symbol of the NFT
@@ -96,9 +96,10 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
 
         _grantRole(DEFAULT_ADMIN_ROLE, deployer);
         _grantRole(ADMIN_ROLE, deployer);
-        _grantRole(WHITELIST_ROLE, deployer);
+        _grantRole(WHITELIST_ADMIN_ROLE, deployer);
 
-        _setRoleAdmin(WHITELIST_ROLE, ADMIN_ROLE);
+        _setRoleAdmin(WHITELIST_ADMIN_ROLE, ADMIN_ROLE);
+        _setRoleAdmin(WHITELISTED_ROLE, WHITELIST_ADMIN_ROLE);
 
         _setDefaultRoyalty(_royaltyReceiver, _royaltyFeeNumerator);
     }
@@ -109,9 +110,15 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
         _;
     }
 
+    /// @notice Ensures that only users with the whitelist admin role can call
+    modifier onlyWhitelistAdmin() {
+        require(hasRole(WHITELIST_ADMIN_ROLE, msg.sender), "Caller has no whitelist admin role");
+        _;
+    }
+
     /// @notice Ensures that only users with the whitelist role can call
-    modifier onlyWhitelister() {
-        require(hasRole(WHITELIST_ROLE, msg.sender), "Caller has no whitelist role");
+    modifier onlyWhitelisted() {
+        require(hasRole(WHITELISTED_ROLE, msg.sender), "Caller has no whitelisted role");
         _;
     }
 
@@ -125,12 +132,20 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
         _unpause();
     }
 
-    function grantWhitelister(address account) external onlyAdmin {
-        grantRole(WHITELIST_ROLE, account);
+    function grantWhitelistAdminRole(address account) external onlyAdmin {
+        grantRole(WHITELIST_ADMIN_ROLE, account);
     }
 
-    function revokeWhitelister(address account) external onlyAdmin {
-        revokeRole(WHITELIST_ROLE, account);
+    function revokeWhitelistAdminRole(address account) external onlyAdmin {
+        revokeRole(WHITELIST_ADMIN_ROLE, account);
+    }
+
+    function grantWhitelistedRole(address account) external onlyWhitelistAdmin {
+        grantRole(WHITELISTED_ROLE, account);
+    }
+
+    function revokeWhitelistedRole(address account) external onlyWhitelistAdmin {
+        revokeRole(WHITELISTED_ROLE, account);
     }
 
     /// @notice Toggles the private sale status
@@ -159,21 +174,21 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice            Adds a user address to the private sale whitelist
     /// @param userAddress The address to whitelist
-    function addAddressToWhitelist(address userAddress) external onlyWhitelister {
+    function addAddressToWhitelist(address userAddress) external onlyWhitelistAdmin {
         require(userAddress != address(0), "Cannot whitelist zero address");
-        require(!whitelist[userAddress], "Address is already whitelisted");
+        require(!hasRole(WHITELISTED_ROLE, userAddress), "Address is already whitelisted");
 
-        whitelist[userAddress] = true;
+        grantRole(WHITELISTED_ROLE, userAddress);
         emit AddressAddedToWhitelist(userAddress);
     }
 
     /// @notice            Removes a user from the private sale whitelist
     /// @param userAddress The address to remove
-    function removeAddressFromWhitelist(address userAddress) external onlyWhitelister {
+    function removeAddressFromWhitelist(address userAddress) external onlyWhitelistAdmin {
         require(userAddress != address(0), "Cannot remove zero address");
-        require(whitelist[userAddress], "Address is already whitelisted");
+        require(hasRole(WHITELISTED_ROLE, userAddress), "Address is not whitelisted");
 
-        whitelist[userAddress] = false;
+        revokeRole(WHITELISTED_ROLE, userAddress);
         emit AddressRemovedFromWhitelist(userAddress);
     }
 
@@ -205,9 +220,8 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     /// @dev    Requires the private sale to be active and the sender to be whitelisted.
     ///         The caller must send exactly `privateSalePrice` in ETH.
     ///         Emits a standard {Transfer} event from ERC721 upon successful mint.
-    function mintPrivateSale() external payable whenNotPaused {
+    function mintPrivateSale() external payable whenNotPaused onlyWhitelisted {
         require(isPrivateSaleActive(), "Private sale is not active");
-        require(whitelist[msg.sender], "Caller is not whitelisted");
         require(msg.value == privateSalePrice, "Incorrect ETH amount sent");
 
         uint256 minted = totalMinted;

@@ -53,12 +53,20 @@ contract MyERC721 is Test {
         new MyNFT(TOKEN_NAME, TOKEN_SYMBOL, URI, MAX_SUPPLY, receiverRoyalty, 20000);
     }
 
-    function testAdminCanGrantAndRevokeWhitelister() public {
-        nft.grantWhitelister(whitelister);
-        assertTrue(nft.hasRole(nft.WHITELIST_ROLE(), whitelister));
+    function testAdminCanGrantAndRevokeWhitelistAdminRole() public {
+        nft.grantWhitelistAdminRole(whitelister);
+        assertTrue(nft.hasRole(nft.WHITELIST_ADMIN_ROLE(), whitelister));
 
-        nft.revokeWhitelister(whitelister);
-        assertFalse(nft.hasRole(nft.WHITELIST_ROLE(), whitelister));
+        nft.revokeWhitelistAdminRole(whitelister);
+        assertFalse(nft.hasRole(nft.WHITELIST_ADMIN_ROLE(), whitelister));
+    }
+
+    function testWhitelistAdminCanGrantAndRevokeWhitelistedRole() public {
+        nft.grantWhitelistedRole(whitelister);
+        assertTrue(nft.hasRole(nft.WHITELISTED_ROLE(), whitelister));
+
+        nft.revokeWhitelistedRole(whitelister);
+        assertFalse(nft.hasRole(nft.WHITELISTED_ROLE(), whitelister));
     }
 
     function testTogglePrivateSaleFailNotAdmin() public {
@@ -107,7 +115,7 @@ contract MyERC721 is Test {
         emit AddressAddedToWhitelist(whitelistedBuyer1);
         nft.addAddressToWhitelist(whitelistSeller);
 
-        assertEq(true, nft.whitelist(whitelistedBuyer1));
+        assertTrue(nft.hasRole(nft.WHITELISTED_ROLE(), whitelistSeller));
     }
 
     function testAddAddressToWhitelistFailNotAdmin() public {
@@ -115,7 +123,7 @@ contract MyERC721 is Test {
         address nonWhitelisted = address(6);
 
         vm.startPrank(nonWhitelisted);
-        vm.expectRevert("Caller has no whitelist role");
+        vm.expectRevert("Caller has no whitelist admin role");
         nft.addAddressToWhitelist(whitelistSellers);
 
         vm.stopPrank();
@@ -141,22 +149,19 @@ contract MyERC721 is Test {
     function testRemoveAddressFromWhitelist() public {
         testAddAddressToWhitelist();
 
-        address removeSeller = whitelistedBuyer1;
         vm.expectEmit(true, false, false, true);
         emit AddressRemovedFromWhitelist(whitelistedBuyer1);
-        nft.removeAddressFromWhitelist(removeSeller);
+        nft.removeAddressFromWhitelist(whitelistedBuyer1);
 
-        assertEq(false, nft.whitelist(whitelistedBuyer1));
+        assertFalse(nft.hasRole(nft.WHITELISTED_ROLE(), whitelistedBuyer1));
     }
 
     function testRemoveAddressFromWhitelistFailNotAdmin() public {
         testAddAddressToWhitelist();
 
-        address removeSeller = whitelistedBuyer1;
-
         vm.startPrank(notAdmin);
-        vm.expectRevert("Caller has no whitelist role");
-        nft.removeAddressFromWhitelist(removeSeller);
+        vm.expectRevert("Caller has no whitelist admin role");
+        nft.removeAddressFromWhitelist(whitelistedBuyer1);
         vm.stopPrank();
     }
 
@@ -169,9 +174,8 @@ contract MyERC721 is Test {
     function testRemoveAddressFromWhitelistFailNotWhitelisted() public {
         testRemoveAddressFromWhitelist();
 
-        address removeSeller = whitelistedBuyer1;
-        vm.expectRevert(bytes("Address is already whitelisted"));
-        nft.removeAddressFromWhitelist(removeSeller);
+        vm.expectRevert(bytes("Address is not whitelisted"));
+        nft.removeAddressFromWhitelist(whitelistedBuyer1);
     }
 
     function testSetPricesFailNotAdmin() public {
@@ -197,13 +201,16 @@ contract MyERC721 is Test {
     }
 
     function testMintPrivateSaleFailSaleNotActive() public {
+        nft.addAddressToWhitelist(whitelistedBuyer1);
+        vm.startPrank(whitelistedBuyer1);
         vm.expectRevert(bytes("Private sale is not active"));
         nft.mintPrivateSale();
+        vm.stopPrank();
     }
 
     function testMintPrivateSaleFailSenderNotWhitelisted() public {
         nft.togglePrivateSale();
-        vm.expectRevert(bytes("Caller is not whitelisted"));
+        vm.expectRevert(bytes("Caller has no whitelisted role"));
         nft.mintPrivateSale();
     }
 
@@ -337,16 +344,16 @@ contract MyERC721 is Test {
     function testFuzzAddToWhitelist(address addr) public {
         vm.assume(addr != address(0));
         nft.addAddressToWhitelist(addr);
-        assertTrue(nft.whitelist(addr));
+        assertTrue(nft.hasRole(nft.WHITELISTED_ROLE(), addr));
     }
 
     function testFuzzRemoveFromWhitelist(address addr) public {
         vm.assume(addr != address(0));
         nft.addAddressToWhitelist(addr);
-        assertTrue(nft.whitelist(addr));
+        assertTrue(nft.hasRole(nft.WHITELISTED_ROLE(), addr));
 
         nft.removeAddressFromWhitelist(addr);
-        assertFalse(nft.whitelist(addr));
+        assertFalse(nft.hasRole(nft.WHITELISTED_ROLE(), addr));
     }
 
     function testFuzzMintPublicSale(address user) public {
