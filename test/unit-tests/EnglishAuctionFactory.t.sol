@@ -2,8 +2,8 @@
 pragma solidity ^0.8.26;
 
 import {Test} from "forge-std/Test.sol";
-import "../src/EnglishAuction.sol";
-import {EnglishAuctionFactory} from "../src/EnglishAuctionFactory.sol";
+import {EnglishAuction} from "../../src/EnglishAuction.sol";
+import {EnglishAuctionFactory} from "../../src/EnglishAuctionFactory.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 contract MockERC721 is ERC721 {

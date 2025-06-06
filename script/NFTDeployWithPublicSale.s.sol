@@ -5,10 +5,10 @@ import "forge-std/Script.sol";
 import {EnvLoader} from "./EnvLoader.s.sol";
 import {MyNFT} from "../src/MyNFT.sol";
 
-/// @title  NFTDeployWithPublicSale
+/// @title  NFTDeployWithPublicSaleScript
 /// @notice Deployment script for the MyNFT ERC721 contract
 /// @dev    Requires environment variables to be set in `.env` file
-contract NFTDeployWithPublicSale is EnvLoader {
+contract NFTDeployWithPublicSaleScript is EnvLoader {
     MyNFT public mynft;
     uint256 private privateKey;
     string private name;

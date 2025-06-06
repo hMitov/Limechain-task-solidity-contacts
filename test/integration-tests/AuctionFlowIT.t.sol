@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import {Test, console2} from "forge-std/Test.sol";
-import {MyNFT} from "../src/MyNFT.sol";
-import {EnglishAuction} from "../src/EnglishAuction.sol";
-import {EnglishAuctionFactory} from "../src/EnglishAuctionFactory.sol";
+import {Test} from "forge-std/Test.sol";
+import {MyNFT} from "../../src/MyNFT.sol";
+import {EnglishAuction} from "../../src/EnglishAuction.sol";
+import {EnglishAuctionFactory} from "../../src/EnglishAuctionFactory.sol";
 
 contract AuctionFlowIT is Test {
     MyNFT private nft;
@@ -14,6 +14,7 @@ contract AuctionFlowIT is Test {
     address private constant seller = address(1);
     address private constant bidder1 = address(2);
     address private constant bidder2 = address(3);
+    address private constant creator = address(4);
 
     uint256 private constant STARTING_BALANCE = 100 ether;
     uint256 private constant MINT_PRICE = 0.0005 ether;
@@ -46,7 +47,7 @@ contract AuctionFlowIT is Test {
 
         vm.startPrank(seller);
 
-        nft = new MyNFT(NFT_NAME, NFT_SYMBOL, NFT_URI, NFT_MAX_SUPPLY, seller, ROYALTY_FEE);
+        nft = new MyNFT(NFT_NAME, NFT_SYMBOL, NFT_URI, NFT_MAX_SUPPLY, creator, ROYALTY_FEE);
         nft.togglePrivateSale();
         nft.addAddressToWhitelist(seller);
         nft.setPrivateSalePrice(MINT_PRICE);
@@ -87,15 +88,18 @@ contract AuctionFlowIT is Test {
         auction.bid{value: winningBid}();
         vm.stopPrank();
 
+        uint256 expectedRoyalty = (winningBid * ROYALTY_FEE) / 10000;
+
         vm.warp(block.timestamp + AUCTION_DURATION + 1);
         vm.startPrank(seller);
         vm.expectEmit(true, false, false, true);
         emit AuctionEnded(bidder2, winningBid);
-        emit RoyaltyPaid(TOKEN_ID, seller, (winningBid * ROYALTY_FEE) / 10000);
+        emit RoyaltyPaid(TOKEN_ID, seller, expectedRoyalty);
         auction.end();
         vm.stopPrank();
 
         assertEq(nft.ownerOf(TOKEN_ID), bidder2);
+        assertEq(creator.balance, expectedRoyalty);
     }
 
     function testRejectsLowBid() public {

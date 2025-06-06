@@ -6,6 +6,8 @@ import "forge-std/Script.sol";
 /// @title  EnvLoader
 /// @notice Base abstract script for loading and validating environment variables in Forge scripts
 abstract contract EnvLoader is Script {
+    string internal constant ERR_INVALID_ENV = " is missing or invalid in .env";
+
     /// @notice Abstract method to be implemented by inheriting scripts for loading .env variables
     /// @dev    Called at the beginning of the `run()` method in deployment scripts
     function loadEnvVars() internal virtual;
@@ -18,7 +20,7 @@ abstract contract EnvLoader is Script {
             require(keyBytes != bytes32(0), string.concat(key, " is empty"));
             return uint256(keyBytes);
         } catch {
-            revert(string.concat(key, " is missing in .env"));
+            revert(string.concat(key, ERR_INVALID_ENV));
         }
     }
 
@@ -30,7 +32,7 @@ abstract contract EnvLoader is Script {
             require(addr != address(0), string.concat(key, " is zero address"));
             return addr;
         } catch {
-            revert(string.concat(key, " is missing or invalid in .env"));
+            revert(string.concat(key, ERR_INVALID_ENV));
         }
     }
 
@@ -42,7 +44,7 @@ abstract contract EnvLoader is Script {
             require(val > 0, string.concat(key, " must be > 0"));
             return val;
         } catch {
-            revert(string.concat(key, " is missing or invalid in .env"));
+            revert(string.concat(key, ERR_INVALID_ENV));
         }
     }
 
@@ -54,7 +56,7 @@ abstract contract EnvLoader is Script {
             require(bytes(val).length > 0, string.concat(key, " is empty"));
             return val;
         } catch {
-            revert(string.concat(key, " is missing in .env"));
+            revert(string.concat(key, ERR_INVALID_ENV));
         }
     }
 
@@ -66,7 +68,7 @@ abstract contract EnvLoader is Script {
             require(val > 0 && val <= 10000, string.concat(key, " must be <= 10000"));
             return uint96(val);
         } catch {
-            revert(string.concat(key, " is missing or invalid in .env"));
+            revert(string.concat(key, ERR_INVALID_ENV));
         }
     }
 }

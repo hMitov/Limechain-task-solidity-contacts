@@ -69,7 +69,7 @@ The `--broadcast` flag can be used with different verbosity levels:
 1. Deploy the NFT contract:
 ```shell
 source .env            
-forge script script/NFTDeployWithPublicSale.s.sol:NFTDeployWithPublicSale --rpc-url $SEPOLIA_RPC_URL --broadcast -vvv
+forge script script/NFTDeployWithPublicSale.s.sol:NFTDeployWithPublicSaleScript --rpc-url $SEPOLIA_RPC_URL --broadcast -vvv
 ```
 ⚠️ **IMPORTANT**: You must set the following contract address in .env
    ```
@@ -79,7 +79,7 @@ forge script script/NFTDeployWithPublicSale.s.sol:NFTDeployWithPublicSale --rpc-
 2. Deploy the English Auction factory:
 ```shell
 source .env            
-forge script script/DeployAuctionFactory.s.sol:DeployAuctionFactory --rpc-url $SEPOLIA_RPC_URL --broadcast -vvv
+forge script script/DeployAuctionFactory.s.sol:DeployAuctionFactoryScript --rpc-url $SEPOLIA_RPC_URL --broadcast -vvv
 
 ```
 ⚠️ **IMPORTANT**: You must set the following contract address in .env
@@ -90,7 +90,7 @@ forge script script/DeployAuctionFactory.s.sol:DeployAuctionFactory --rpc-url $S
 3. Create first auction:
 ```shell
 source .env      
-forge script script/MintAndCreateAuction1.s.sol:MintAndCreateAuction1 --rpc-url $SEPOLIA_RPC_URL --broadcast -vvvvv
+forge script script/MintAndCreateAuction1.s.sol:MintAndCreateAuction1Script --rpc-url $SEPOLIA_RPC_URL --broadcast -vvvvv
 ```
 
 ⚠️ **IMPORTANT**: You must set the following contract address in .env
@@ -101,13 +101,13 @@ forge script script/MintAndCreateAuction1.s.sol:MintAndCreateAuction1 --rpc-url 
 4. Start first auction:
 ```shell
 source .env               
-forge script script/StartAuction1.s.sol:StartAuction1 --rpc-url $SEPOLIA_RPC_URL --broadcast -v
+forge script script/StartAuction1.s.sol:StartAuction1Script --rpc-url $SEPOLIA_RPC_URL --broadcast -v
 ```
 
 5. Create second auction:
 ```shell
 source .env      
-forge script script/MintAndCreateAuction2.s.sol:MintAndCreateAuction2 --rpc-url $SEPOLIA_RPC_URL --broadcast -vvvvv
+forge script script/MintAndCreateAuction2.s.sol:MintAndCreateAuction2Script --rpc-url $SEPOLIA_RPC_URL --broadcast -vvvvv
 ```
 
 ⚠️ **IMPORTANT**: You must set the following contract address in .env
@@ -118,7 +118,7 @@ forge script script/MintAndCreateAuction2.s.sol:MintAndCreateAuction2 --rpc-url 
 6. Start second auction:
 ```shell
 source .env               
-forge script script/StartAuction2.s.sol:StartAuction2 --rpc-url $SEPOLIA_RPC_URL --broadcast -v
+forge script script/StartAuction2.s.sol:StartAuction2Script --rpc-url $SEPOLIA_RPC_URL --broadcast -v
 
 ```
 Each deployment script uses Foundry's scripting capabilities to:

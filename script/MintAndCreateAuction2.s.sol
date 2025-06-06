@@ -9,10 +9,10 @@ import {MyNFT} from "../src/MyNFT.sol";
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
-/// @title  MintAndCreateAuction2
+/// @title  MintAndCreateAuction2Script
 /// @notice Mints an NFT and creates an auction for it using the EnglishAuctionFactory
 /// @dev    Requires environment variables to be set in `.env` file
-contract MintAndCreateAuction2 is EnvLoader {
+contract MintAndCreateAuction2Script is EnvLoader {
     EnglishAuctionFactory private factory;
     MyNFT private nft;
     uint256 private mintPrice;
@@ -53,6 +53,9 @@ contract MintAndCreateAuction2 is EnvLoader {
         minBidIncrement = getEnvUint("AUCTION_MIN_BID_INCREMENT");
     }
 
+    /// @notice         Mints one NFT during the public sale
+    /// @dev            Sends `mintPrice` ETH along with the transaction
+    /// @return tokenId The newly minted token's ID
     function mintNFT() internal returns (uint256 tokenId) {
         require(sender.balance >= mintPrice, "Insufficient ETH for mint");
 
@@ -60,10 +63,16 @@ contract MintAndCreateAuction2 is EnvLoader {
         tokenId = nft.totalMinted();
     }
 
+    /// @notice               Approves the deployed auction to transfer the minted NFT
+    /// @param tokenId        The ID of the NFT to approve
+    /// @param auctionAddress The address of the deployed auction contract
     function approveAuction(uint256 tokenId, address auctionAddress) internal {
         nft.approve(auctionAddress, tokenId);
     }
 
+    /// @notice                Deploys an English auction for the minted NFT
+    /// @param tokenId         The ID of the NFT to auction
+    /// @return auctionAddress The address of the newly created auction contract
     function deployAuction(uint256 tokenId) internal returns (address auctionAddress) {
         auctionAddress = factory.createAuction(address(nft), tokenId, auctionDuration, minBidIncrement);
     }
