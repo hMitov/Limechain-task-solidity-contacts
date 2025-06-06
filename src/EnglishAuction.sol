@@ -126,6 +126,8 @@ contract EnglishAuction is AccessControl, IERC721Receiver, ReentrancyGuard, Paus
         _grantRole(DEFAULT_ADMIN_ROLE, _seller);
         _grantRole(ADMIN_ROLE, _seller);
         _grantRole(PAUSER_ROLE, _seller);
+
+        _setRoleAdmin(PAUSER_ROLE, ADMIN_ROLE);
     }
 
     /// @notice Ensures that only users with the admin role can call
