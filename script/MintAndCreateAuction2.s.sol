@@ -69,7 +69,7 @@ contract MintAndCreateAuction2Script is EnvLoader {
     function approveAuction(uint256 tokenId, address auctionAddress) internal {
         nft.approve(auctionAddress, tokenId);
     }
-    
+
     /// @notice                Deploys an English auction for the minted NFT
     /// @param tokenId         The ID of the NFT to auction
     /// @return auctionAddress The address of the newly created auction contract
