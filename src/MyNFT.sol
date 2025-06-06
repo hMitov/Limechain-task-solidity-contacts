@@ -68,7 +68,6 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     /// @notice Role identifier for accounts that are whitelisted
     bytes32 public constant WHITELISTED_ROLE = keccak256("WHITELISTED_ROLE");
 
-
     /// @param _name                Name of the NFT collection
     /// @param _symbol              Symbol of the NFT
     /// @param _URI                 Base URI for metadata
@@ -141,7 +140,7 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
         revokeRole(WHITELIST_ADMIN_ROLE, account);
     }
 
-    function grantWhitelistedRole(address account) external onlyWhitelistAdmin() {
+    function grantWhitelistedRole(address account) external onlyWhitelistAdmin {
         grantRole(WHITELISTED_ROLE, account);
     }
 
