@@ -68,6 +68,9 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     /// @notice Role identifier for accounts that are whitelisted
     bytes32 public constant WHITELISTED_ROLE = keccak256("WHITELISTED_ROLE");
 
+    /// @notice Role identifier for accounts that can manage the pause/unpause
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
     /// @param _name                Name of the NFT collection
     /// @param _symbol              Symbol of the NFT
     /// @param _URI                 Base URI for metadata
@@ -97,9 +100,11 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
         _grantRole(DEFAULT_ADMIN_ROLE, deployer);
         _grantRole(ADMIN_ROLE, deployer);
         _grantRole(WHITELIST_ADMIN_ROLE, deployer);
+        _grantRole(PAUSER_ROLE, deployer);
 
         _setRoleAdmin(WHITELIST_ADMIN_ROLE, ADMIN_ROLE);
         _setRoleAdmin(WHITELISTED_ROLE, WHITELIST_ADMIN_ROLE);
+        _setRoleAdmin(PAUSER_ROLE, ADMIN_ROLE);
 
         _setDefaultRoyalty(_royaltyReceiver, _royaltyFeeNumerator);
     }
@@ -107,6 +112,12 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     /// @notice Ensures that only users with the admin role can call
     modifier onlyAdmin() {
         require(hasRole(ADMIN_ROLE, msg.sender), "Caller is not an admin");
+        _;
+    }
+
+    /// @notice Ensures that only users with the pauser role can call
+    modifier onlyPauser() {
+        require(hasRole(PAUSER_ROLE, msg.sender), "Caller is not pauser");
         _;
     }
 
@@ -123,29 +134,55 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     }
 
     /// @notice Pauses the auction (for bidding and withdrawal)
-    function pause() external onlyAdmin {
+    function pause() external onlyPauser {
         _pause();
     }
 
     /// @notice Resumes the auction
-    function unpause() external onlyAdmin {
+    function unpause() external onlyPauser {
         _unpause();
     }
 
+    /// @notice        Grants the whitelist admin role to an account
+    /// @dev           Callable only by an account with the admin role
+    /// @param account The address to grant the whitelist admin role to
     function grantWhitelistAdminRole(address account) external onlyAdmin {
         grantRole(WHITELIST_ADMIN_ROLE, account);
     }
 
+    /// @notice        Revokes the whitelist admin role from an account
+    /// @dev           Callable only by an account with the admin role
+    /// @param account The address to revoke the whitelist admin role from
     function revokeWhitelistAdminRole(address account) external onlyAdmin {
         revokeRole(WHITELIST_ADMIN_ROLE, account);
     }
 
+    /// @notice        Grants the whitelisted role to a user
+    /// @dev           Callable only by a whitelist admin
+    /// @param account The address to add as a whitelisted user
     function grantWhitelistedRole(address account) external onlyWhitelistAdmin {
         grantRole(WHITELISTED_ROLE, account);
     }
 
+    /// @notice        Revokes the whitelisted role from a user
+    /// @dev           Callable only by a whitelist admin
+    /// @param account The address to remove from the whitelist
     function revokeWhitelistedRole(address account) external onlyWhitelistAdmin {
         revokeRole(WHITELISTED_ROLE, account);
+    }
+
+    /// @notice        Grants the pauser role to an account
+    /// @dev           Callable only by an admin
+    /// @param account The address to be granted the pauser role
+    function grantPauserRole(address account) external onlyAdmin {
+        grantRole(PAUSER_ROLE, account);
+    }
+
+    /// @notice        Revokes the pauser role from an account
+    /// @dev           Callable only by an admin
+    /// @param account The address to be revoked the pauser role
+    function revokePauserRole(address account) external onlyAdmin {
+        revokeRole(PAUSER_ROLE, account);
     }
 
     /// @notice Toggles the private sale status

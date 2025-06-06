@@ -54,19 +54,51 @@ contract MyERC721 is Test {
     }
 
     function testAdminCanGrantAndRevokeWhitelistAdminRole() public {
+        address admin = address(6);
+        nft.grantRole(nft.ADMIN_ROLE(), admin);
+
+        vm.startPrank(admin);
         nft.grantWhitelistAdminRole(whitelister);
+        vm.stopPrank();
+
         assertTrue(nft.hasRole(nft.WHITELIST_ADMIN_ROLE(), whitelister));
 
+        vm.startPrank(admin);
         nft.revokeWhitelistAdminRole(whitelister);
+        vm.stopPrank();
+
         assertFalse(nft.hasRole(nft.WHITELIST_ADMIN_ROLE(), whitelister));
     }
 
     function testWhitelistAdminCanGrantAndRevokeWhitelistedRole() public {
-        nft.grantWhitelistedRole(whitelister);
-        assertTrue(nft.hasRole(nft.WHITELISTED_ROLE(), whitelister));
+        nft.grantRole(nft.ADMIN_ROLE(), notAdmin);
 
-        nft.revokeWhitelistedRole(whitelister);
-        assertFalse(nft.hasRole(nft.WHITELISTED_ROLE(), whitelister));
+        vm.startPrank(notAdmin);
+        nft.grantWhitelistAdminRole(whitelister);
+        vm.stopPrank();
+
+        address whitelisted = address(6);
+        vm.startPrank(whitelister);
+        nft.grantWhitelistedRole(whitelisted);
+        vm.stopPrank();
+
+        assertTrue(nft.hasRole(nft.WHITELISTED_ROLE(), whitelisted));
+
+        vm.startPrank(whitelister);
+        nft.revokeWhitelistedRole(whitelisted);
+        assertFalse(nft.hasRole(nft.WHITELISTED_ROLE(), whitelisted));
+        vm.stopPrank();
+    }
+
+    function testAdminCanGrantAndRevokePauserRole() public {
+        nft.grantRole(nft.ADMIN_ROLE(), notAdmin);
+        vm.startPrank(notAdmin);
+        nft.grantPauserRole(notAdmin);
+        assertTrue(nft.hasRole(nft.PAUSER_ROLE(), notAdmin));
+
+        nft.revokePauserRole(notAdmin);
+        assertFalse(nft.hasRole(nft.PAUSER_ROLE(), notAdmin));
+        vm.stopPrank();
     }
 
     function testTogglePrivateSaleFailNotAdmin() public {
