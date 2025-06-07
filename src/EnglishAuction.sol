@@ -164,7 +164,7 @@ contract EnglishAuction is AccessControl, IERC721Receiver, ReentrancyGuard, Paus
     /// @dev Callable only by an account with ADMIN_ROLE
     /// @param account The address to revoke the pauser role from
     function revokePauserRole(address account) external onlyAdmin {
-        require(account != address(0), "Cannot revoke role to zero address");
+        require(account != address(0), "Cannot revoke role from zero address");
         revokeRole(PAUSER_ROLE, account);
     }
 
