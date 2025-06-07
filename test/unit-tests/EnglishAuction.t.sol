@@ -52,6 +52,20 @@ contract EnglishAuctionTest is Test {
         vm.stopPrank();
     }
 
+    function testGrandPauserRoleFailsIfZeroAddressPassed() public {
+        vm.startPrank(seller);
+        vm.expectRevert("Cannot grant role to zero address");
+        auction.grantPauserRole(address(0));
+        vm.stopPrank();
+    }
+
+    function testRevokePauserRoleFailsIfZeroAddressPassed() public {
+        vm.startPrank(seller);
+        vm.expectRevert("Cannot revoke role from zero address");
+        auction.revokePauserRole(address(0));
+        vm.stopPrank();
+    }
+
     function testPauseUnpauseByPauser() public {
         vm.startPrank(seller);
         address pauser = address(4);
