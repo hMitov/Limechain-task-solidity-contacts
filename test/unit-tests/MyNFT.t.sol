@@ -11,11 +11,12 @@ contract MyERC721 is Test {
     string private constant TOKEN_SYMBOL = "tokenSymbol1";
     string private constant URI = "https://example.com/token-image.png";
     uint256 private constant MAX_SUPPLY = 10000;
-    address private notAdmin = address(1);
-    address private receiverRoyalty = address(5);
-    address private whitelister = address(2);
-    address private whitelistedBuyer1 = address(3);
-    address private buyer = address(4);
+    address private constant notAdmin = address(1);
+    address private constant admin = address(2);
+    address private constant receiverRoyalty = address(3);
+    address private constant whitelister = address(4);
+    address private constant whitelistedBuyer1 = address(5);
+    address private constant buyer = address(6);
     uint96 private constant FEE_NOMINATOR = 700;
 
     event PricesUpdated(uint256 privateSalePrice, uint256 publicSalePrice);
@@ -53,8 +54,55 @@ contract MyERC721 is Test {
         new MyNFT(TOKEN_NAME, TOKEN_SYMBOL, URI, MAX_SUPPLY, receiverRoyalty, 20000);
     }
 
+    function testGrandPauserRoleFailsIfZeroAddressPassed() public {
+        nft.grantRole(nft.ADMIN_ROLE(), admin);
+        vm.startPrank(admin);
+        vm.expectRevert("Cannot grant role to zero address");
+        nft.grantPauserRole(address(0));
+        vm.stopPrank();
+    }
+
+    function testRevokePauserRoleFailsIfZeroAddressPassed() public {
+        nft.grantRole(nft.ADMIN_ROLE(), admin);
+        vm.startPrank(admin);
+        vm.expectRevert("Cannot revoke role from zero address");
+        nft.revokePauserRole(address(0));
+        vm.stopPrank();
+    }
+
+    function testGrandWhitelistAdminRoleFailsIfZeroAddressPassed() public {
+        nft.grantRole(nft.ADMIN_ROLE(), admin);
+        vm.startPrank(admin);
+        vm.expectRevert("Cannot grant role to zero address");
+        nft.grantWhitelistAdminRole(address(0));
+        vm.stopPrank();
+    }
+
+    function testRevokeWhitelistAdminRoleFailsIfZeroAddressPassed() public {
+        nft.grantRole(nft.ADMIN_ROLE(), admin);
+        vm.startPrank(admin);
+        vm.expectRevert("Cannot revoke role from zero address");
+        nft.revokeWhitelistAdminRole(address(0));
+        vm.stopPrank();
+    }
+
+    function testGrandWhitelistedRoleFailsIfZeroAddressPassed() public {
+        nft.grantRole(nft.WHITELIST_ADMIN_ROLE(), whitelister);
+        vm.startPrank(whitelister);
+        vm.expectRevert("Cannot grant role to zero address");
+        nft.grantWhitelistedRole(address(0));
+        vm.stopPrank();
+    }
+
+    function testRevokeWhitelistedRoleFailsIfZeroAddressPassed() public {
+        nft.grantRole(nft.WHITELIST_ADMIN_ROLE(), whitelister);
+        vm.startPrank(whitelister);
+        vm.expectRevert("Cannot revoke role from zero address");
+        nft.revokeWhitelistedRole(address(0));
+        vm.stopPrank();
+    }
+
     function testAdminCanGrantAndRevokeWhitelistAdminRole() public {
-        address admin = address(6);
         nft.grantRole(nft.ADMIN_ROLE(), admin);
 
         vm.startPrank(admin);
