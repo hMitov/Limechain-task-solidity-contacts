@@ -147,6 +147,7 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     /// @dev           Callable only by an account with the admin role
     /// @param account The address to grant the whitelist admin role to
     function grantWhitelistAdminRole(address account) external onlyAdmin {
+        require(account != address(0), "Cannot grant role to zero address");
         grantRole(WHITELIST_ADMIN_ROLE, account);
     }
 
@@ -154,6 +155,7 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     /// @dev           Callable only by an account with the admin role
     /// @param account The address to revoke the whitelist admin role from
     function revokeWhitelistAdminRole(address account) external onlyAdmin {
+        require(account != address(0), "Cannot revoke role to zero address");
         revokeRole(WHITELIST_ADMIN_ROLE, account);
     }
 
@@ -161,6 +163,7 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     /// @dev           Callable only by a whitelist admin
     /// @param account The address to add as a whitelisted user
     function grantWhitelistedRole(address account) external onlyWhitelistAdmin {
+        require(account != address(0), "Cannot grant role to zero address");
         grantRole(WHITELISTED_ROLE, account);
     }
 
@@ -168,6 +171,7 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     /// @dev           Callable only by a whitelist admin
     /// @param account The address to remove from the whitelist
     function revokeWhitelistedRole(address account) external onlyWhitelistAdmin {
+        require(account != address(0), "Cannot revoke role to zero address");
         revokeRole(WHITELISTED_ROLE, account);
     }
 
@@ -175,6 +179,7 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     /// @dev           Callable only by an admin
     /// @param account The address to be granted the pauser role
     function grantPauserRole(address account) external onlyAdmin {
+        require(account != address(0), "Cannot grant role to zero address");
         grantRole(PAUSER_ROLE, account);
     }
 
@@ -182,6 +187,7 @@ contract MyNFT is ERC721Royalty, AccessControl, ReentrancyGuard, Pausable {
     /// @dev           Callable only by an admin
     /// @param account The address to be revoked the pauser role
     function revokePauserRole(address account) external onlyAdmin {
+        require(account != address(0), "Cannot revoke role to zero address");
         revokeRole(PAUSER_ROLE, account);
     }
 
