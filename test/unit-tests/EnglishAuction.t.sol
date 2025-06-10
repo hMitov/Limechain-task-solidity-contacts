@@ -91,11 +91,17 @@ contract EnglishAuctionTest is Test {
     }
 
     function testContructorRevertsOnInAppropriateArgs() public {
+        vm.expectRevert("Seller cannot be zero address");
+        new EnglishAuction(address(0), address(nft), NFT_ID, AUCTION_DURATION, MIN_BID_INCREMENT);
+
         vm.expectRevert("NFT cannot be zero address");
         new EnglishAuction(seller, address(0), NFT_ID, AUCTION_DURATION, MIN_BID_INCREMENT);
 
         vm.expectRevert("Invalid auction duration");
         new EnglishAuction(seller, address(nft), NFT_ID, 0, MIN_BID_INCREMENT);
+    
+        vm.expectRevert("Min bid increment must be greater than zero");
+        new EnglishAuction(seller, address(nft), NFT_ID, AUCTION_DURATION, 0);
     }
 
     function testStartAuction() public {
