@@ -116,6 +116,7 @@ contract EnglishAuction is AccessControl, IERC721Receiver, ReentrancyGuard, Paus
         require(_seller != address(0), "Seller cannot be zero address");
         require(_nft != address(0), "NFT cannot be zero address");
         require(_duration > 0 && _duration <= MAX_DURATION, "Invalid auction duration");
+        require(_minBidIncrement > 0, "Min bid increment must be greater than zero");
 
         nft = IERC721(_nft);
         nftId = _nftId;
