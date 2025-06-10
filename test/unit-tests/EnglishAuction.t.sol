@@ -99,7 +99,7 @@ contract EnglishAuctionTest is Test {
 
         vm.expectRevert("Invalid auction duration");
         new EnglishAuction(seller, address(nft), NFT_ID, 0, MIN_BID_INCREMENT);
-    
+
         vm.expectRevert("Min bid increment must be greater than zero");
         new EnglishAuction(seller, address(nft), NFT_ID, AUCTION_DURATION, 0);
     }
